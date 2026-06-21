@@ -1,0 +1,62 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- TV Screen -->
+  <rect x="40" y="60" width="432" height="280" rx="20" fill="#333" stroke="#000" stroke-width="10"/>
+  <rect x="60" y="80" width="392" height="240" rx="10" fill="#000814"/>
+  
+  <!-- City Skyline on Screen -->
+  <!-- Background buildings (darker red) -->
+  <path d="M60 320 V150 H90 V180 H120 V140 H160 V190 H200 V130 H240 V170 H280 V120 H320 V160 H360 V140 H400 V180 H430 V200 H452 V320 Z" fill="#600"/>
+  <!-- Foreground buildings (brighter red) -->
+  <path d="M70 320 V190 H100 V220 H130 V180 H170 V230 H210 V170 H250 V210 H290 V160 H330 V200 H370 V180 H410 V220 H440 V240 H452 V320 Z" fill="#900"/>
+
+  <!-- Window Lights (Yellow accents) -->
+  <g fill="#FFD700">
+    <rect x="80" y="200" width="4" height="6" />
+    <rect x="80" y="215" width="4" height="6" />
+    <rect x="110" y="230" width="4" height="6" />
+    <rect x="150" y="190" width="4" height="6" />
+    <rect x="150" y="205" width="4" height="6" />
+    <rect x="220" y="180" width="4" height="6" />
+    <rect x="220" y="195" width="4" height="6" />
+    <rect x="260" y="220" width="4" height="6" />
+    <rect x="300" y="170" width="4" height="6" />
+    <rect x="300" y="185" width="4" height="6" />
+    <rect x="340" y="210" width="4" height="6" />
+    <rect x="380" y="190" width="4" height="6" />
+    <rect x="380" y="205" width="4" height="6" />
+    <rect x="420" y="230" width="4" height="6" />
+  </g>
+
+  <!-- TV Stands -->
+  <path d="M80 340 L60 380 H110 L90 340 Z" fill="#333"/>
+  <path d="M432 340 L452 380 H402 L422 340 Z" fill="#333"/>
+  
+  <!-- Wireless Frequencies -->
+  <g stroke="#888" stroke-width="6" stroke-linecap="round" fill="none">
+    <path d="M216 240 Q256 220 296 240" />
+    <path d="M200 220 Q256 190 312 220" />
+  </g>
+
+  <!-- Gamepad -->
+  <g transform="translate(106, 260)">
+    <!-- Controller Body -->
+    <path d="M50 20 H250 C290 20 310 50 300 90 L280 160 C270 180 250 190 230 180 L180 160 H120 L70 180 C50 190 30 180 20 160 L0 90 C-10 50 10 20 50 20Z" fill="#eee" stroke="#333" stroke-width="8"/>
+    
+    <!-- Left D-pad -->
+    <rect x="55" y="75" width="40" height="15" rx="2" fill="#333"/>
+    <rect x="67.5" y="62.5" width="15" height="40" rx="2" fill="#333"/>
+    
+    <!-- Right Buttons -->
+    <circle cx="230" cy="70" r="10" fill="#333"/>
+    <circle cx="250" cy="90" r="10" fill="#333"/>
+    <circle cx="210" cy="90" r="10" fill="#333"/>
+    <circle cx="230" cy="110" r="10" fill="#333"/>
+    
+    <!-- Sticks -->
+    <circle cx="110" cy="120" r="25" fill="#bbb" stroke="#333" stroke-width="4"/>
+    <circle cx="190" cy="120" r="25" fill="#bbb" stroke="#333" stroke-width="4"/>
+    
+    <!-- Center Buttons -->
+    <rect x="135" y="70" width="30" height="10" rx="5" fill="#888"/>
+  </g>
+</svg>

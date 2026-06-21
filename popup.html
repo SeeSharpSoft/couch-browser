@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            width: 250px;
+            padding: 10px;
+            font-family: sans-serif;
+            color: #333;
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background-color: #ccc;
+        }
+        .active .dot {
+            background-color: #4CAF50;
+        }
+        .inactive .dot {
+            background-color: #f44336;
+        }
+        h3 {
+            margin-top: 0;
+            font-size: 18px;
+            color: #E50914; /* Netflix Red */
+            display: flex;
+            align-items: center;
+        }
+        h3 img {
+            margin-right: 8px;
+        }
+        .mapping {
+            font-size: 12px;
+            color: #444;
+            margin-top: 10px;
+        }
+        .mapping-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+        }
+        .mapping-table td {
+            padding: 3px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .mapping-table td:first-child {
+            font-weight: bold;
+            color: #666;
+            width: 45%;
+        }
+        .section-title {
+            font-weight: bold;
+            font-size: 13px;
+            margin-top: 12px;
+            margin-bottom: 4px;
+            color: #222;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 2px;
+        }
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-top: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 34px;
+            height: 20px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #4CAF50;
+        }
+        input:checked + .slider:before {
+            transform: translateX(14px);
+        }
+        #domain-name {
+            font-size: 11px;
+            color: #888;
+            word-break: break-all;
+        }
+        .footer {
+            margin-top: 15px;
+            font-size: 10px;
+            text-align: center;
+            color: #999;
+        }
+        .footer a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <h3>
+        <img src="icons/icon32.svg" width="20" height="20" alt="">
+        Couch Browser
+    </h3>
+    <div id="status-container" class="status inactive">
+        <div class="dot"></div>
+        <span id="status-text">Gamepad: Disconnected</span>
+    </div>
+
+    <div class="toggle-container">
+        <div>
+            <div style="font-size: 13px;">Enable on site</div>
+            <div id="domain-name">...</div>
+        </div>
+        <label class="switch">
+            <input type="checkbox" id="enable-toggle" checked>
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="mapping">
+        <div class="section-title">Navigation (XBox Controller)</div>
+        <table class="mapping-table">
+            <tr><td>D-Pad / L-Stick</td><td>Move selection</td></tr>
+            <tr><td>Button A</td><td>Enter / Select</td></tr>
+            <tr><td>Button B</td><td>Back / Escape</td></tr>
+            <tr><td>Button X</td><td>Inspect / Drill in</td></tr>
+            <tr><td>LB / RB</td><td>History Back / Forward</td></tr>
+            <tr><td>Right Stick</td><td>Scroll page</td></tr>
+        </table>
+
+        <div class="section-title">Cursor Mode (Hold RT)</div>
+        <table class="mapping-table">
+            <tr><td>L-Stick</td><td>Move mouse cursor</td></tr>
+            <tr><td>Button A</td><td>Left Click</td></tr>
+            <tr><td>Button B</td><td>Close Tab</td></tr>
+            <tr><td>LB / RB</td><td>Prev / Next Tab</td></tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        <a href="https://github.com/SeeSharpSoft/couch-browser" target="_blank">GitHub</a> | v1.0.0
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

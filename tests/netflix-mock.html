@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Netflix Mock</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; }
+        body { background: #141414; color: #fff; font-family: sans-serif; height: 3000px; }
+        .pinning-header { position: fixed; top: 0; left: 0; right: 0; height: 68px; display: flex; align-items: center; padding: 0 40px; z-index: 10; }
+        .tabbed-primary-navigation { display: flex; }
+        .navigation-tab { margin-right: 20px; }
+        .navigation-tab a { color: #fff; text-decoration: none; padding: 8px; display: inline-block; }
+        .billboard-row { padding-top: 120px; padding-left: 40px; height: 500px; }
+        .billboard-links { display: flex; gap: 16px; }
+        .billboard-links a, .billboard-links button { padding: 12px 24px; font-size: 16px; border: 0; cursor: pointer; }
+        .lolomoRow { padding: 20px 40px; }
+        .row-title { margin-bottom: 10px; }
+        .slider { display: flex; gap: 8px; }
+        .title-card-container { width: 200px; }
+        .title-card { display: block; }
+        .title-card a.slider-refocus { display: block; height: 110px; background: #333; color: #fff; text-decoration: none; line-height: 110px; text-align: center; }
+        .previewModal--container { position: fixed; top: 100px; left: 100px; width: 600px; height: 400px; background: #222; z-index: 5000; }
+        #modal-close { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; }
+        #modal-link-1 { position: absolute; top: 150px; left: 20px; width: 150px; height: 40px; background: #444; color: #fff; line-height: 40px; text-align: center; text-decoration: none; }
+        #modal-btn-2 { position: absolute; top: 150px; left: 220px; width: 150px; height: 40px; }
+        #modal-btn-3 { position: absolute; top: 150px; left: 420px; width: 150px; height: 40px; }
+    </style>
+</head>
+<body>
+    <div class="pinning-header">
+        <div class="tabbed-primary-navigation">
+            <div class="navigation-tab"><a href="#home" id="tab-home">Home</a></div>
+            <div class="navigation-tab"><a href="#tv" id="tab-tv">TV Shows</a></div>
+            <div class="navigation-tab"><a href="#movies" id="tab-movies">Movies</a></div>
+        </div>
+    </div>
+
+    <div class="billboard-row">
+        <h1>Featured Title</h1>
+        <div class="billboard-links">
+            <a class="playLink" data-uia="play-button" href="#play" id="btn-play">Play</a>
+            <button data-uia="billboard-more-info" id="btn-moreinfo">More Info</button>
+        </div>
+    </div>
+
+    <div class="lolomoRow" id="row-1">
+        <h2 class="row-title">Trending Now</h2>
+        <div class="slider">
+            <div class="title-card-container"><div class="title-card"><a class="slider-refocus" href="#r1c1" id="r1c1">R1C1</a></div></div>
+            <div class="title-card-container"><div class="title-card"><a class="slider-refocus" href="#r1c2" id="r1c2">R1C2</a></div></div>
+            <div class="title-card-container"><div class="title-card"><a class="slider-refocus" href="#r1c3" id="r1c3">R1C3</a></div></div>
+            <div class="title-card-container"><div class="title-card"><a class="slider-refocus" href="#r1c4" id="r1c4">R1C4</a></div></div>
+        </div>
+    </div>
+
+    <div class="lolomoRow" id="row-2">
+        <h2 class="row-title">Popular</h2>
+        <div class="slider">
+            <div class="title-card-container"><div class="title-card"><a class="slider-refocus" href="#r2c1" id="r2c1">R2C1</a></div></div>
+            <div class="title-card-container"><div class="title-card"><a class="slider-refocus" href="#r2c2" id="r2c2">R2C2</a></div></div>
+            <div class="title-card-container"><div class="title-card"><a class="slider-refocus" href="#r2c3" id="r2c3">R2C3</a></div></div>
+            <div class="title-card-container"><div class="title-card"><a class="slider-refocus" href="#r2c4" id="r2c4">R2C4</a></div></div>
+        </div>
+    </div>
+    <div class="previewModal--container" id="preview-modal" style="display:none;" role="dialog" aria-modal="true">
+        <button data-uia="previewModal-closebtn" id="modal-close" aria-label="Close">X</button>
+        <a class="slider-refocus" href="#m1" id="modal-link-1">M-Link</a>
+        <button id="modal-btn-2">M-Btn-2</button>
+        <button id="modal-btn-3">M-Btn-3</button>
+    </div>
+</body>
+</html>
