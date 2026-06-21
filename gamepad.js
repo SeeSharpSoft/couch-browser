@@ -41,7 +41,13 @@
     }
 
     function pollGamepad() {
-        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        let gamepads = [];
+        try {
+            gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        } catch (e) {
+            // Access to gamepad might be disallowed by permissions policy in some iframes.
+            // console.error('Couch Browser: Failed to get gamepads', e);
+        }
 
         let gp = null;
         for (let i = 0; i < gamepads.length; i++) {

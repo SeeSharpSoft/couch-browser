@@ -18,6 +18,24 @@
         // connected gamepads to content-script isolated worlds.
         injectScript('gamepad.js');
 
+        // Try to enable gamepad access for iframes by adding the allow attribute.
+        if (window.self === window.top) {
+            const enableGamepadInIframes = () => {
+                document.querySelectorAll('iframe:not([allow*="gamepad"])').forEach(iframe => {
+                    let allow = iframe.getAttribute('allow') || '';
+                    if (!allow.includes('gamepad')) {
+                        iframe.setAttribute('allow', (allow ? allow + '; ' : '') + 'gamepad');
+                        // Reloading the iframe might be necessary for the policy to take effect, 
+                        // but it can be disruptive. For now, we just set the attribute for future loads
+                        // or for cases where it works dynamically.
+                    }
+                });
+            };
+            enableGamepadInIframes();
+            const observer = new MutationObserver(enableGamepadInIframes);
+            observer.observe(document.documentElement, { childList: true, subtree: true });
+        }
+
         const key = `disabled_${domain}`;
         let result = {};
         try {
@@ -50,9 +68,7 @@
 
     async function loadSiteLogic() {
         const scriptPath = `sites/${domain}.js`;
-        const defaultPath = 'sites/default.js';
-
-        let pathToLoad = defaultPath;
+        let pathToLoad = 'sites/default.js';
         const fullScriptPath = chrome.runtime.getURL(scriptPath);
         if (await checkFileExists(fullScriptPath)) {
             pathToLoad = scriptPath;

@@ -14,7 +14,7 @@ user-*
 Thumbs.db
 
 # Environment variables
-.env
+.env.*
 
 # Optional build artifacts
 dist/
