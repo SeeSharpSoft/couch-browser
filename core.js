@@ -98,6 +98,44 @@
         return false;
     }
 
+    // Some controls (notably icon-only controls implemented as a span) have no
+    // useful layout box of their own. Their SVG is positioned independently and
+    // is the thing the user actually sees. Keep the element's box as the base
+    // (so padding remains selectable), but include rendered visual descendants
+    // when they extend beyond it or when the element has no usable dimensions.
+    function getVisualBounds(el) {
+        if (!el || !el.getBoundingClientRect) return null;
+
+        const own = el.getBoundingClientRect();
+        let left = own.left;
+        let top = own.top;
+        let right = own.right;
+        let bottom = own.bottom;
+
+        // These are the descendants that can have an independent visual box.
+        // Avoid walking every descendant on every navigation pass.
+        const visuals = el.querySelectorAll
+            ? el.querySelectorAll('svg, img, video, canvas, object, iframe')
+            : [];
+        for (const visual of visuals) {
+            const rect = visual.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) continue;
+            left = Math.min(left, rect.left);
+            top = Math.min(top, rect.top);
+            right = Math.max(right, rect.right);
+            bottom = Math.max(bottom, rect.bottom);
+        }
+
+        return {
+            left,
+            top,
+            right,
+            bottom,
+            width: Math.max(0, right - left),
+            height: Math.max(0, bottom - top)
+        };
+    }
+
     function isVisible(el) {
         if (!el || !el.getBoundingClientRect) return false;
         const rect = el.getBoundingClientRect();
@@ -481,7 +519,11 @@
         const target = getContainer(el) || el;
         ensureIndicator();
 
-        const rect = target.getBoundingClientRect();
+        const rect = getVisualBounds(target);
+        if (!rect) {
+            selectionIndicator.style.display = 'none';
+            return;
+        }
         const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
         const scrollY = window.pageYOffset || document.documentElement.scrollTop;
 
