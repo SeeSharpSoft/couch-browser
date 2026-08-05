@@ -631,12 +631,12 @@
 
     function ensureCursorStyle() {
         if (cursorStyleEl) return;
-        cursorStyleEl = document.getElementById('padflix-hide-cursor-style');
+        cursorStyleEl = document.getElementById('couch-browser-hide-cursor-style');
         if (cursorStyleEl) return;
         cursorStyleEl = document.createElement('style');
-        cursorStyleEl.id = 'padflix-hide-cursor-style';
+        cursorStyleEl.id = 'couch-browser-hide-cursor-style';
         cursorStyleEl.textContent =
-            'html.padflix-gamepad-active, html.padflix-gamepad-active * { cursor: none !important; }';
+            'html.couch-browser-gamepad-active, html.couch-browser-gamepad-active * { cursor: none !important; }';
         (document.head || document.documentElement).appendChild(cursorStyleEl);
     }
 
