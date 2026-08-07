@@ -559,9 +559,23 @@
     function handleScroll(dx, dy) {
         const scrollable = getScrollable(currentElement);
         if (scrollable) {
-            scrollable.scrollBy(dx, dy);
+            // Explicitly request instant scrolling. Both scrollBy() and
+            // scrollTop assignment can still be affected by a page's
+            // scroll-behavior:smooth (as on github.com/tentone/syncinput).
+            scrollable.scrollTo({
+                left: scrollable.scrollLeft + dx,
+                top: scrollable.scrollTop + dy,
+                behavior: 'instant'
+            });
         } else {
-            window.scrollBy(dx, dy);
+            // Use the scrolling element so this also works consistently when
+            // the document has globally enabled smooth scrolling.
+            const root = document.scrollingElement || document.documentElement;
+            root.scrollTo({
+                left: root.scrollLeft + dx,
+                top: root.scrollTop + dy,
+                behavior: 'instant'
+            });
         }
         updateSelectionIndicator(currentElement);
     }
@@ -751,9 +765,6 @@
             } else if (!isGamepadConnected && wasConnected) {
                 updateSelectionIndicator();
             }
-        } else if (event.data.type === 'COUCH_BROWSER_SCROLL') {
-            // Already handled by gamepad.js for basic scrolling, but core.js
-            // could still use it for specific UI interactions if needed.
         } else if (event.data.type === 'COUCH_BROWSER_KEY') {
             const key = event.data.key;
             if (['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'].includes(key)) {

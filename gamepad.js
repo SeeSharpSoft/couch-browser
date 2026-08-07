@@ -22,7 +22,7 @@
 
     const AXIS_THRESHOLD = 0.5;   // left stick -> directional navigation (edge triggered)
     const SCROLL_DEADZONE = 0.15; // right stick -> scrolling (continuous)
-    const SCROLL_SPEED = 18;      // pixels per frame at full deflection
+    const SCROLL_SPEED = 1080;    // pixels per second at full deflection
     const TRIGGER_THRESHOLD = 0.5;// analog trigger considered "pressed" above this
     const CURSOR_DEADZONE = 0.15; // left stick -> cursor movement (cursor mode)
     const CURSOR_SPEED = 12;      // cursor pixels per frame at full deflection
@@ -30,6 +30,7 @@
     const prevButtons = {};
     let lastLeftAxisX = 0;
     let lastLeftAxisY = 0;
+    let lastPollTime = null;
     let cursorMode = false;       // true while the right trigger is held
 
     function edge(index, pressed) {
@@ -41,6 +42,15 @@
     }
 
     function pollGamepad() {
+        const now = performance.now();
+        // Scale scrolling by elapsed time rather than animation-frame count.
+        // Heavy pages can render at a lower frame rate, which otherwise makes
+        // the same stick position physically scroll more slowly.
+        const elapsed = lastPollTime === null
+            ? 1 / 60
+            : Math.min(Math.max(now - lastPollTime, 0), 50) / 1000;
+        lastPollTime = now;
+
         let gamepads = [];
         try {
             gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -127,8 +137,9 @@
             // Right stick -> continuous scrolling (works in both modes).
             const rx = gp.axes && gp.axes.length > 2 ? gp.axes[2] : 0;
             const ry = gp.axes && gp.axes.length > 3 ? gp.axes[3] : 0;
-            const dx = Math.abs(rx) > SCROLL_DEADZONE ? rx * SCROLL_SPEED : 0;
-            const dy = Math.abs(ry) > SCROLL_DEADZONE ? ry * SCROLL_SPEED : 0;
+            const scrollStep = SCROLL_SPEED * elapsed;
+            const dx = Math.abs(rx) > SCROLL_DEADZONE ? rx * scrollStep : 0;
+            const dy = Math.abs(ry) > SCROLL_DEADZONE ? ry * scrollStep : 0;
             if (dx !== 0 || dy !== 0) sendScroll(dx, dy);
         }
         requestAnimationFrame(pollGamepad);
@@ -151,9 +162,6 @@
     }
 
     function sendScroll(dx, dy) {
-        if (dx !== 0 || dy !== 0) {
-            window.scrollBy(dx, dy);
-        }
         window.postMessage({
             source: 'couch-browser-extension',
             type: 'COUCH_BROWSER_SCROLL',
