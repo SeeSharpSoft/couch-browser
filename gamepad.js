@@ -12,6 +12,7 @@
     const BTN_A = 0;       // Enter / click  (mouse click while in cursor mode)
     const BTN_B = 1;       // Escape / back
     const BTN_X = 2;       // Drill into nested interactive elements
+    const BTN_Y = 3;       // Reload current tab while in cursor mode
     const BTN_LB = 4;      // Browser back
     const BTN_RB = 5;      // Browser forward
     const BTN_RT = 7;      // Right trigger: hold for cursor (mouse) mode
@@ -99,6 +100,8 @@
                 if (cursorMode) sendTabClose(); else sendKey('Escape');
             }
             if (edge(BTN_X, isDown(BTN_X))) sendKey('PadX');
+            // Y reloads the current tab only while RT/cursor mode is active.
+            if (edge(BTN_Y, isDown(BTN_Y)) && cursorMode) sendTabReload();
 
             // Shoulder buttons: browser history navigation, or — while the right
             // trigger is held (cursor mode) — switch to the previous/next tab.
@@ -194,6 +197,14 @@
         window.postMessage({
             source: 'couch-browser-extension',
             type: 'COUCH_BROWSER_TAB_CLOSE'
+        }, '*');
+    }
+
+    function sendTabReload() {
+        console.log('Couch Browser: Sending COUCH_BROWSER_TAB_RELOAD');
+        window.postMessage({
+            source: 'couch-browser-extension',
+            type: 'COUCH_BROWSER_TAB_RELOAD'
         }, '*');
     }
 

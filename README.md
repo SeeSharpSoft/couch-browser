@@ -20,6 +20,7 @@ Padflix is a Chrome extension that enables **universal gamepad navigation for an
   - **Left shoulder (LB)**: browser **back** (or **previous tab** while the right trigger is held)
   - **Right shoulder (RB)**: browser **forward** (or **next tab** while the right trigger is held)
   - **Right trigger (RT, hold)**: cursor mode — the left stick moves a virtual mouse cursor, **A** performs a mouse click at the cursor, and **LB/RB** switch browser tabs
+  - **Y while holding RT**: reload the current browser tab
   - **Right stick**: scroll up/down and left/right
 
 ## Installation
@@ -42,7 +43,8 @@ Since this extension is currently in development, you need to load it as an "unp
 5.  Press **A** to click/activate the selected element, **B** to go back / close an overlay, and **X** to drill into nested interactive elements.
 6.  Press the **left/right shoulder** buttons to navigate browser history (back/forward).
 7.  Hold the **right trigger** to enter cursor mode: move the mouse cursor with the left stick and press **A** to click wherever the cursor is. While the trigger is held, the **left/right shoulder** buttons switch to the previous/next browser tab.
-8.  Use the **right stick** to scroll the page (or the nearest scrollable container).
+8.  Press **Y while holding RT** to reload the current browser tab.
+9.  Use the **right stick** to scroll the page (or the nearest scrollable container).
 
 *Note: Navigation, activation and scrolling are all handled by the central engine (`core.js`) acting on its own tracked selection, independent of native `document.activeElement` quirks.*
 
