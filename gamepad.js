@@ -26,10 +26,10 @@
     const NAV_REPEAT_DELAY = 350; // ms before a held stick starts repeating
     const NAV_REPEAT_INTERVAL = 120; // ms between repeated navigation steps
     const SCROLL_DEADZONE = 0.15; // right stick -> scrolling (continuous)
-    const SCROLL_SPEED = 1080;    // pixels per second at full deflection
+    const DEFAULT_SCROLL_SPEED = 1200; // pixels per second at full deflection
     const TRIGGER_THRESHOLD = 0.5;// analog trigger considered "pressed" above this
     const CURSOR_DEADZONE = 0.15; // left stick -> cursor movement (cursor mode)
-    const CURSOR_SPEED = 12;      // cursor pixels per frame at full deflection
+    const DEFAULT_CURSOR_SPEED = 20; // cursor pixels per frame at full deflection
 
     const prevButtons = {};
     let leftNavDirectionX = 0;
@@ -41,6 +41,8 @@
     let lastPollTime = null;
     let defaultMode = 'cursor'; // persisted default; RT temporarily inverts it
     let cursorMode = false;         // effective mode after applying RT
+    let cursorSpeed = DEFAULT_CURSOR_SPEED;
+    let scrollSpeed = DEFAULT_SCROLL_SPEED;
     let shiftMode = false;
 
     function edge(index, pressed) {
@@ -143,8 +145,8 @@
             const ly = gp.axes && gp.axes.length > 1 ? gp.axes[1] : 0;
 
             if (cursorMode) {
-                const cdx = Math.abs(lx) > CURSOR_DEADZONE ? lx * CURSOR_SPEED : 0;
-                const cdy = Math.abs(ly) > CURSOR_DEADZONE ? ly * CURSOR_SPEED : 0;
+                const cdx = Math.abs(lx) > CURSOR_DEADZONE ? lx * cursorSpeed : 0;
+                const cdy = Math.abs(ly) > CURSOR_DEADZONE ? ly * cursorSpeed : 0;
                 if (cdx !== 0 || cdy !== 0) sendCursor(cdx, cdy);
             } else {
                 // Unlike the D-pad, a held stick direction repeats navigation.
@@ -164,7 +166,7 @@
                 lastRightAxisX = rx;
                 lastRightAxisY = ry;
             } else {
-                const scrollStep = SCROLL_SPEED * elapsed;
+                const scrollStep = scrollSpeed * elapsed;
                 const dx = Math.abs(rx) > SCROLL_DEADZONE ? rx * scrollStep : 0;
                 const dy = Math.abs(ry) > SCROLL_DEADZONE ? ry * scrollStep : 0;
                 if (dx !== 0 || dy !== 0) sendScroll(dx, dy);
@@ -252,7 +254,13 @@
 
     window.addEventListener('message', (event) => {
         const data = event.data;
-        if (!data || data.source !== 'couch-browser-extension' || data.type !== 'COUCH_BROWSER_DEFAULT_MODE') return;
+        if (!data || data.source !== 'couch-browser-extension') return;
+        if (data.type === 'COUCH_BROWSER_SETTINGS') {
+            if (Number.isFinite(data.cursorSpeed) && data.cursorSpeed > 0) cursorSpeed = data.cursorSpeed;
+            if (Number.isFinite(data.scrollSpeed) && data.scrollSpeed > 0) scrollSpeed = data.scrollSpeed;
+            return;
+        }
+        if (data.type !== 'COUCH_BROWSER_DEFAULT_MODE') return;
         defaultMode = data.mode === 'cursor' ? 'cursor' : 'navigation';
         window.CouchBrowserDefaultMode = defaultMode;
         const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -310,6 +318,14 @@
             e.gamepad.index, e.gamepad.id,
             e.gamepad.buttons.length, e.gamepad.axes.length);
     });
+
+    // Ask the content script for the persisted values after this script has
+    // fully initialized. This guarantees settings are applied on every page
+    // load, even if the initial storage read raced script injection.
+    window.postMessage({
+        source: 'couch-browser-extension',
+        type: 'COUCH_BROWSER_SETTINGS_REQUEST'
+    }, '*');
 
     pollGamepad();
 })();

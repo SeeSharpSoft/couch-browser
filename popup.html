@@ -127,6 +127,18 @@
             color: #0066cc;
             text-decoration: none;
         }
+        .setting {
+            margin: 9px 0;
+        }
+        .setting-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 3px;
+        }
+        .setting input[type="range"] {
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -152,6 +164,15 @@
 
     <div class="mapping">
         <div class="section-title">Navigation (XBox Controller)</div>
+        <div class="section-title">Controller Settings</div>
+        <div class="setting">
+            <div class="setting-label"><label for="cursor-speed">Cursor speed</label><span id="cursor-speed-value"></span></div>
+            <input type="range" id="cursor-speed" min="1" max="50" step="1">
+        </div>
+        <div class="setting">
+            <div class="setting-label"><label for="scroll-speed">Scroll speed</label><span id="scroll-speed-value"></span></div>
+            <input type="range" id="scroll-speed" min="300" max="3000" step="60">
+        </div>
         <table class="mapping-table">
             <tr><td>D-Pad / L-Stick</td><td>Move selection</td></tr>
             <tr><td>Button A</td><td>Enter / Select</td></tr>

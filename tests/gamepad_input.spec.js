@@ -98,3 +98,43 @@ test('RT + Y toggles the default and a held left stick repeats navigation', asyn
 
   await context.close();
 });
+
+test('cursor and scroll speed settings affect emitted movement', async () => {
+  const context = await chromium.launchPersistentContext(path.join(__dirname, '..', 'user-data-gamepad-speeds'), {
+    headless: false,
+    args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
+  });
+  const page = await context.newPage();
+  await setupGamepad(page);
+  await page.goto('data:text/html,<html><body></body></html>');
+  await page.evaluate(() => {
+    window.__cursor = [];
+    window.__scroll = [];
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'COUCH_BROWSER_CURSOR') window.__cursor.push(event.data);
+      if (event.data && event.data.type === 'COUCH_BROWSER_SCROLL') window.__scroll.push(event.data);
+    });
+  });
+  await page.addScriptTag({ content: fs.readFileSync(path.join(extensionPath, 'gamepad.js'), 'utf8') });
+  await page.waitForTimeout(100);
+
+  await page.evaluate(() => {
+    window.postMessage({
+      source: 'couch-browser-extension', type: 'COUCH_BROWSER_SETTINGS',
+      cursorSpeed: 25, scrollSpeed: 2000
+    }, '*');
+    window.__setAxis(0, 1);
+  });
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(() => window.__cursor.some((move) => move.dx === 25))).toBe(true);
+
+  await page.evaluate(() => {
+    window.__setAxis(0, 0);
+    window.postMessage({ source: 'couch-browser-extension', type: 'COUCH_BROWSER_DEFAULT_MODE', mode: 'navigation' }, '*');
+    window.__setAxis(2, 1);
+  });
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(() => window.__scroll.reduce((total, move) => total + move.dx, 0))).toBeGreaterThan(140);
+
+  await context.close();
+});
