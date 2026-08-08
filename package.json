@@ -1,6 +1,6 @@
 {
   "name": "couch-browser",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Couch Browser is a Chrome extension that enables gamepad support for streaming websites like Netflix and Amazon Prime. It allows you to navigate and control playback using a standard gamepad.",
   "main": "content.js",
   "directories": {
