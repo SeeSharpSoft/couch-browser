@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Couch Browser - Gamepad support for Chrome",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "SeeSharpSoft",
   "description": "Control Netflix, Prime Video and other websites with your gamepad. Navigate, select, scroll and control playback from your couch.",
   "homepage_url": "https://github.com/SeeSharpSoft/couch-browser",
@@ -38,7 +38,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["gamepad.js", "core.js", "sites/*.js"],
+      "resources": ["gamepad.js", "virtual-keyboard.js", "core.js", "sites/*.js"],
       "matches": ["<all_urls>"]
     }
   ]

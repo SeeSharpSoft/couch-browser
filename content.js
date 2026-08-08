@@ -17,6 +17,7 @@
         // Gamepad polling must run in the Main World: Chrome does not expose
         // connected gamepads to content-script isolated worlds.
         injectScript('gamepad.js');
+        injectScript('virtual-keyboard.js');
 
         // Try to enable gamepad access for iframes by adding the allow attribute.
         if (window.self === window.top) {
@@ -88,9 +89,12 @@
     // Only the top frame relays so iframes don't trigger duplicate switches.
     if (window.self === window.top) {
         window.addEventListener('message', (event) => {
-            if (event.source !== window) return;
             const data = event.data;
-            if (data && data.source === 'couch-browser-extension' && (data.type === 'COUCH_BROWSER_TAB' || data.type === 'COUCH_BROWSER_TAB_CLOSE')) {
+            // gamepad.js runs in the page's Main World while this listener runs
+            // in the isolated content-script world. The Window identity can be
+            // wrapped differently between those worlds, so authenticate using
+            // the message marker instead of event.source.
+            if (data && data.source === 'couch-browser-extension' && (data.type === 'COUCH_BROWSER_TAB' || data.type === 'COUCH_BROWSER_TAB_CLOSE' || data.type === 'COUCH_BROWSER_TAB_RELOAD')) {
                 console.log('Couch Browser: Relaying message to background:', data.type);
                 try {
                     chrome.runtime.sendMessage(data);

@@ -47,7 +47,24 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
                 });
             }
             break;
+        case 'COUCH_BROWSER_TAB_RELOAD':
+            console.log('Couch Browser: Received COUCH_BROWSER_TAB_RELOAD');
+            if (sender.tab && typeof sender.tab.id === 'number') {
+                reloadTab(sender.tab.id);
+            } else {
+                // Normally sender.tab is present for a content-script message,
+                // but use the active tab as a safe fallback if Chrome omits it.
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    if (tabs && tabs[0] && typeof tabs[0].id === 'number') {
+                        reloadTab(tabs[0].id);
+                    } else {
+                        console.error('Couch Browser: No current tab found to reload');
+                    }
+                });
+            }
+            break;
         case 'COUCH_BROWSER_TAB':
+            console.log('Couch Browser: Received COUCH_BROWSER_TAB');
             const dir = msg.dir === 'next' ? 1 : -1;
 
             chrome.tabs.query({ currentWindow: true }, (tabs) => {
@@ -70,3 +87,12 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
             break;
     }
 });
+
+function reloadTab(tabId) {
+    console.log('Couch Browser: Reloading tab', tabId);
+    chrome.tabs.reload(tabId, {}, () => {
+        if (chrome.runtime.lastError) {
+            console.error('Couch Browser: Failed to reload tab:', chrome.runtime.lastError.message);
+        }
+    });
+}

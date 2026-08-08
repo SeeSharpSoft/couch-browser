@@ -12,9 +12,11 @@
     const BTN_A = 0;       // Enter / click  (mouse click while in cursor mode)
     const BTN_B = 1;       // Escape / back
     const BTN_X = 2;       // Drill into nested interactive elements
+    const BTN_Y = 3;       // Reload current tab while in cursor mode
     const BTN_LB = 4;      // Browser back
     const BTN_RB = 5;      // Browser forward
     const BTN_RT = 7;      // Right trigger: hold for cursor (mouse) mode
+    const BTN_LT = 6;      // Left trigger: virtual keyboard shift
     const BTN_DPAD_UP = 12;
     const BTN_DPAD_DOWN = 13;
     const BTN_DPAD_LEFT = 14;
@@ -22,7 +24,7 @@
 
     const AXIS_THRESHOLD = 0.5;   // left stick -> directional navigation (edge triggered)
     const SCROLL_DEADZONE = 0.15; // right stick -> scrolling (continuous)
-    const SCROLL_SPEED = 18;      // pixels per frame at full deflection
+    const SCROLL_SPEED = 1080;    // pixels per second at full deflection
     const TRIGGER_THRESHOLD = 0.5;// analog trigger considered "pressed" above this
     const CURSOR_DEADZONE = 0.15; // left stick -> cursor movement (cursor mode)
     const CURSOR_SPEED = 12;      // cursor pixels per frame at full deflection
@@ -30,7 +32,11 @@
     const prevButtons = {};
     let lastLeftAxisX = 0;
     let lastLeftAxisY = 0;
+    let lastRightAxisX = 0;
+    let lastRightAxisY = 0;
+    let lastPollTime = null;
     let cursorMode = false;       // true while the right trigger is held
+    let shiftMode = false;
 
     function edge(index, pressed) {
         const was = !!prevButtons[index];
@@ -41,6 +47,15 @@
     }
 
     function pollGamepad() {
+        const now = performance.now();
+        // Scale scrolling by elapsed time rather than animation-frame count.
+        // Heavy pages can render at a lower frame rate, which otherwise makes
+        // the same stick position physically scroll more slowly.
+        const elapsed = lastPollTime === null
+            ? 1 / 60
+            : Math.min(Math.max(now - lastPollTime, 0), 50) / 1000;
+        lastPollTime = now;
+
         let gamepads = [];
         try {
             gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -82,13 +97,38 @@
                 lastLeftAxisY = 0;
             }
 
+            const ltActive = analog(BTN_LT) > TRIGGER_THRESHOLD || isDown(BTN_LT);
+            if (edge(BTN_LT, ltActive)) {
+                shiftMode = true;
+                sendKey('ShiftOn');
+            } else if (!ltActive && shiftMode) {
+                shiftMode = false;
+                sendKey('ShiftOff');
+            }
+
             // A: click element under cursor in cursor mode, else activate selection.
-            if (edge(BTN_A, isDown(BTN_A))) sendKey(cursorMode ? 'MouseClick' : 'Enter');
+            if (edge(BTN_A, isDown(BTN_A))) {
+                if (!cursorMode && window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) sendKey('KeyboardActivate');
+                else sendKey(cursorMode ? 'MouseClick' : 'Enter');
+            }
             if (edge(BTN_B, isDown(BTN_B))) {
                 console.log('Couch Browser: B button pressed, cursorMode:', cursorMode);
-                if (cursorMode) sendTabClose(); else sendKey('Escape');
+                if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) {
+                    sendKey('Escape');
+                } else if (cursorMode) sendTabClose(); else sendKey('Escape');
             }
-            if (edge(BTN_X, isDown(BTN_X))) sendKey('PadX');
+            if (edge(BTN_X, isDown(BTN_X))) {
+                sendKey(window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen() ? 'Enter' : 'PadX');
+            }
+            // Y is Backspace for the virtual keyboard. Outside the keyboard it
+            // retains its existing RT/cursor-mode reload behavior.
+            if (edge(BTN_Y, isDown(BTN_Y))) {
+                if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) {
+                    sendKey('KeyboardBackspace');
+                } else if (cursorMode) {
+                    sendTabReload();
+                }
+            }
 
             // Shoulder buttons: browser history navigation, or — while the right
             // trigger is held (cursor mode) — switch to the previous/next tab.
@@ -127,9 +167,22 @@
             // Right stick -> continuous scrolling (works in both modes).
             const rx = gp.axes && gp.axes.length > 2 ? gp.axes[2] : 0;
             const ry = gp.axes && gp.axes.length > 3 ? gp.axes[3] : 0;
-            const dx = Math.abs(rx) > SCROLL_DEADZONE ? rx * SCROLL_SPEED : 0;
-            const dy = Math.abs(ry) > SCROLL_DEADZONE ? ry * SCROLL_SPEED : 0;
-            if (dx !== 0 || dy !== 0) sendScroll(dx, dy);
+            const keyboardOpen = window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen();
+            if (keyboardOpen) {
+                if (rx > AXIS_THRESHOLD && lastRightAxisX <= AXIS_THRESHOLD) sendKey('InputArrowRight');
+                else if (rx < -AXIS_THRESHOLD && lastRightAxisX >= -AXIS_THRESHOLD) sendKey('InputArrowLeft');
+                if (ry > AXIS_THRESHOLD && lastRightAxisY <= AXIS_THRESHOLD) sendKey('InputArrowDown');
+                else if (ry < -AXIS_THRESHOLD && lastRightAxisY >= -AXIS_THRESHOLD) sendKey('InputArrowUp');
+                lastRightAxisX = rx;
+                lastRightAxisY = ry;
+            } else {
+                const scrollStep = SCROLL_SPEED * elapsed;
+                const dx = Math.abs(rx) > SCROLL_DEADZONE ? rx * scrollStep : 0;
+                const dy = Math.abs(ry) > SCROLL_DEADZONE ? ry * scrollStep : 0;
+                if (dx !== 0 || dy !== 0) sendScroll(dx, dy);
+                lastRightAxisX = 0;
+                lastRightAxisY = 0;
+            }
         }
         requestAnimationFrame(pollGamepad);
     }
@@ -151,9 +204,6 @@
     }
 
     function sendScroll(dx, dy) {
-        if (dx !== 0 || dy !== 0) {
-            window.scrollBy(dx, dy);
-        }
         window.postMessage({
             source: 'couch-browser-extension',
             type: 'COUCH_BROWSER_SCROLL',
@@ -186,6 +236,14 @@
         window.postMessage({
             source: 'couch-browser-extension',
             type: 'COUCH_BROWSER_TAB_CLOSE'
+        }, '*');
+    }
+
+    function sendTabReload() {
+        console.log('Couch Browser: Sending COUCH_BROWSER_TAB_RELOAD');
+        window.postMessage({
+            source: 'couch-browser-extension',
+            type: 'COUCH_BROWSER_TAB_RELOAD'
         }, '*');
     }
 

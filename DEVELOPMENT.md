@@ -52,11 +52,13 @@ no synthetic DOM key events. It only posts messages via `window.postMessage` wit
 - `COUCH_BROWSER_TAB` with `{ dir: 'prev' | 'next' }` (right trigger held + LB/RB). Unlike
   the others, this is consumed by `content.js` and relayed to the background service
   worker, not by `core.js`.
+- `COUCH_BROWSER_TAB_RELOAD` (right trigger held + Y). This is consumed by `content.js`
+  and relayed to the background service worker, not by `core.js`.
 
 The right trigger (button 7) is analog: it is treated as held when its `value`
 exceeds 0.5. While held, the left stick emits `COUCH_BROWSER_CURSOR` instead of `Arrow*`,
 A emits `MouseClick` instead of `Enter`, and the shoulder buttons emit `COUCH_BROWSER_TAB`
-(previous/next tab) instead of `NavBack`/`NavForward`. The two stick mappings are
+(previous/next tab) instead of `NavBack`/`NavForward`; Y reloads the current tab. The two stick mappings are
 mutually exclusive. On a mode switch the left-stick edge state is reset so no stray
 navigation step is emitted.
 
