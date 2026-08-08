@@ -42,7 +42,7 @@ no synthetic DOM key events. It only posts messages via `window.postMessage` wit
 `source: 'couch-browser-extension'` marker:
 
 - `COUCH_BROWSER_KEY` with `key` ∈ `ArrowUp` / `ArrowDown` / `ArrowLeft` / `ArrowRight`
-  (left stick edge-triggered + D-pad), `Enter` (A), `Escape` (B), `PadX` (X),
+  (left stick held-repeat + D-pad edge-triggered), `Enter` (A), `Escape` (B), `PadX` (X),
   `NavBack` (LB), `NavForward` (RB), `CursorOn` / `CursorOff` (right trigger
   pressed/released) and `MouseClick` (A while the trigger is held).
 - `COUCH_BROWSER_SCROLL` with `{ dx, dy }` (right stick, continuous, deadzone 0.15,
@@ -52,13 +52,15 @@ no synthetic DOM key events. It only posts messages via `window.postMessage` wit
 - `COUCH_BROWSER_TAB` with `{ dir: 'prev' | 'next' }` (right trigger held + LB/RB). Unlike
   the others, this is consumed by `content.js` and relayed to the background service
   worker, not by `core.js`.
-- `COUCH_BROWSER_TAB_RELOAD` (right trigger held + Y). This is consumed by `content.js`
+- `COUCH_BROWSER_TAB_RELOAD` (left trigger + Y, when the virtual keyboard is closed). This is consumed by `content.js`
   and relayed to the background service worker, not by `core.js`.
 
 The right trigger (button 7) is analog: it is treated as held when its `value`
-exceeds 0.5. While held, the left stick emits `COUCH_BROWSER_CURSOR` instead of `Arrow*`,
+exceeds 0.5. The default mode is cursor mode unless changed with RT + Y, and is persisted as either navigation or cursor mode. While RT is held,
+the effective mode is inverted: the left stick emits `COUCH_BROWSER_CURSOR` instead of `Arrow*`,
 A emits `MouseClick` instead of `Enter`, and the shoulder buttons emit `COUCH_BROWSER_TAB`
-(previous/next tab) instead of `NavBack`/`NavForward`; Y reloads the current tab. The two stick mappings are
+(previous/next tab) instead of `NavBack`/`NavForward`. RT + Y toggles the persisted default mode;
+LT + Y reloads the current tab when the virtual keyboard is closed. The two stick mappings are
 mutually exclusive. On a mode switch the left-stick edge state is reset so no stray
 navigation step is emitted.
 
@@ -214,7 +216,7 @@ mode click) are untrusted and do not restore it.
 
 ### Virtual mouse cursor (right trigger)
 
-When `config.cursorMode` is enabled, holding the right trigger sends `CursorOn`:
+When cursor mode is active, `gamepad.js` sends `CursorOn`:
 
 - A `#couch-browser-cursor` element (a `position: fixed`, **`pointer-events: none`**,
   top-frame-only pointer) is shown. `pointer-events: none` is essential so

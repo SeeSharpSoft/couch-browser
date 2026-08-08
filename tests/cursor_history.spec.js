@@ -56,6 +56,25 @@ test('Right trigger cursor mode moves a virtual cursor and clicks under it', asy
   await page.waitForTimeout(100);
 
   expect(await page.evaluate(() => window.__clicks)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.CouchBrowserSiteLogic.current.id)).toBe('test-button');
+
+  // Cursor clicks also move the navigation selection. Clicking a text input
+  // follows the same activation path as A in navigation mode and opens the
+  // virtual keyboard.
+  await page.evaluate(() => {
+    const input = document.getElementById('test-input');
+    const r = input.getBoundingClientRect();
+    const pos = window.CouchBrowserSiteLogic.cursorPosition;
+    window.postMessage({
+      source: 'couch-browser-extension', type: 'COUCH_BROWSER_CURSOR',
+      dx: r.left + r.width / 2 - pos.x,
+      dy: r.top + r.height / 2 - pos.y
+    }, '*');
+  });
+  await postKey(page, 'MouseClick');
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(() => window.CouchBrowserSiteLogic.current.id)).toBe('test-input');
+  await expect(page.locator('#couch-browser-virtual-keyboard')).toBeVisible();
 
   // Leaving cursor mode hides the cursor.
   await postKey(page, 'CursorOff');

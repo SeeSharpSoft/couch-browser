@@ -682,8 +682,19 @@
     function cursorClick() {
         if (!cursorActive) return;
         if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.cursorClick(cursorX, cursorY)) return;
-        const target = document.elementFromPoint(cursorX, cursorY);
-        if (!target || target === document.body || target === document.documentElement) return;
+        const hit = document.elementFromPoint(cursorX, cursorY);
+        const target = findInteractiveTarget(hit);
+        if (!target) return;
+
+        // A cursor click becomes the new navigation selection as well. Text
+        // inputs use the exact same activation path as A in navigation mode,
+        // which opens the virtual keyboard instead of dispatching a raw click.
+        setCurrent(target);
+        if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isTextTarget(target)) {
+            activateCurrent();
+            return;
+        }
+
         const opts = {
             bubbles: true, cancelable: true, composed: true, view: window,
             clientX: cursorX, clientY: cursorY, button: 0
@@ -694,6 +705,19 @@
         target.dispatchEvent(new MouseEvent('mouseup', opts));
         target.dispatchEvent(new MouseEvent('click', opts));
         setTimeout(() => checkScopeChange(), 100);
+    }
+
+    function findInteractiveTarget(el) {
+        if (!el || el === document.body || el === document.documentElement) return null;
+        const selector = getSelectorString();
+        let current = el;
+        while (current && current !== document.body && current !== document.documentElement) {
+            try {
+                if (current.matches(selector) && isVisible(current)) return current;
+            } catch (e) {}
+            current = current.parentElement;
+        }
+        return null;
     }
 
     // ----- Hide the real OS mouse cursor while the gamepad is in use ------
@@ -784,6 +808,11 @@
             } else if (!isGamepadConnected && wasConnected) {
                 updateSelectionIndicator();
             }
+        } else if (event.data.type === 'COUCH_BROWSER_DEFAULT_MODE') {
+            // This also covers the initial setting arriving after core.js loads.
+            // gamepad.js will immediately correct this if RT is currently held.
+            if (event.data.mode === 'cursor') startCursor();
+            else stopCursor();
         } else if (event.data.type === 'COUCH_BROWSER_KEY') {
             const key = event.data.key;
             if (key === 'ShiftOn' || key === 'ShiftOff') {
@@ -829,6 +858,10 @@
             if (first) setCurrent(first);
         }
         initialized = true;
+
+        // gamepad.js may have received the persisted setting before core.js
+        // finished loading. Apply that setting once during initialization.
+        if (window.CouchBrowserDefaultMode === 'cursor') startCursor();
 
         // Watch for overlays appearing/disappearing to update scope and selection.
         const observer = new MutationObserver(() => checkScopeChange());

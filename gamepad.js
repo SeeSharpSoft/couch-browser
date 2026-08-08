@@ -9,20 +9,22 @@
     console.log('Couch Browser: Gamepad polling loaded in ' + (window.self === window.top ? 'top frame' : 'iframe'));
 
     // Standard gamepad button indices.
-    const BTN_A = 0;       // Enter / click  (mouse click while in cursor mode)
+    const BTN_A = 0;       // Enter / click (mouse click while in cursor mode)
     const BTN_B = 1;       // Escape / back
     const BTN_X = 2;       // Drill into nested interactive elements
-    const BTN_Y = 3;       // Reload current tab while in cursor mode
+    const BTN_Y = 3;       // Toggle default mode with RT; reload with LT
     const BTN_LB = 4;      // Browser back
     const BTN_RB = 5;      // Browser forward
-    const BTN_RT = 7;      // Right trigger: hold for cursor (mouse) mode
+    const BTN_RT = 7;      // Right trigger: invert the default mode while held
     const BTN_LT = 6;      // Left trigger: virtual keyboard shift
     const BTN_DPAD_UP = 12;
     const BTN_DPAD_DOWN = 13;
     const BTN_DPAD_LEFT = 14;
     const BTN_DPAD_RIGHT = 15;
 
-    const AXIS_THRESHOLD = 0.5;   // left stick -> directional navigation (edge triggered)
+    const AXIS_THRESHOLD = 0.5;   // left stick -> directional navigation threshold
+    const NAV_REPEAT_DELAY = 350; // ms before a held stick starts repeating
+    const NAV_REPEAT_INTERVAL = 120; // ms between repeated navigation steps
     const SCROLL_DEADZONE = 0.15; // right stick -> scrolling (continuous)
     const SCROLL_SPEED = 1080;    // pixels per second at full deflection
     const TRIGGER_THRESHOLD = 0.5;// analog trigger considered "pressed" above this
@@ -30,12 +32,15 @@
     const CURSOR_SPEED = 12;      // cursor pixels per frame at full deflection
 
     const prevButtons = {};
-    let lastLeftAxisX = 0;
-    let lastLeftAxisY = 0;
+    let leftNavDirectionX = 0;
+    let leftNavDirectionY = 0;
+    let leftNavNextRepeatX = 0;
+    let leftNavNextRepeatY = 0;
     let lastRightAxisX = 0;
     let lastRightAxisY = 0;
     let lastPollTime = null;
-    let cursorMode = false;       // true while the right trigger is held
+    let defaultMode = 'cursor'; // persisted default; RT temporarily inverts it
+    let cursorMode = false;         // effective mode after applying RT
     let shiftMode = false;
 
     function edge(index, pressed) {
@@ -80,22 +85,9 @@
             const isDown = (i) => gp.buttons[i] ? gp.buttons[i].pressed : false;
             const analog = (i) => gp.buttons[i] ? gp.buttons[i].value : 0;
 
-            // Right trigger (analog) enables cursor (mouse) mode while held.
             const rtActive = analog(BTN_RT) > TRIGGER_THRESHOLD || isDown(BTN_RT);
-            if (edge(BTN_RT, rtActive)) {
-                cursorMode = true;
-                console.log('Couch Browser: cursorMode ON');
-                sendKey('CursorOn');
-                // Avoid a stray navigation edge when switching modes.
-                lastLeftAxisX = 0;
-                lastLeftAxisY = 0;
-            } else if (!rtActive && cursorMode) {
-                cursorMode = false;
-                console.log('Couch Browser: cursorMode OFF');
-                sendKey('CursorOff');
-                lastLeftAxisX = 0;
-                lastLeftAxisY = 0;
-            }
+            edge(BTN_RT, rtActive);
+            applyMode(defaultMode === 'cursor' ? !rtActive : rtActive);
 
             const ltActive = analog(BTN_LT) > TRIGGER_THRESHOLD || isDown(BTN_LT);
             if (edge(BTN_LT, ltActive)) {
@@ -120,12 +112,14 @@
             if (edge(BTN_X, isDown(BTN_X))) {
                 sendKey(window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen() ? 'Enter' : 'PadX');
             }
-            // Y is Backspace for the virtual keyboard. Outside the keyboard it
-            // retains its existing RT/cursor-mode reload behavior.
             if (edge(BTN_Y, isDown(BTN_Y))) {
                 if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) {
                     sendKey('KeyboardBackspace');
-                } else if (cursorMode) {
+                } else if (rtActive) {
+                    defaultMode = defaultMode === 'navigation' ? 'cursor' : 'navigation';
+                    applyMode(defaultMode === 'cursor' ? !rtActive : rtActive);
+                    saveDefaultMode(defaultMode);
+                } else if (ltActive) {
                     sendTabReload();
                 }
             }
@@ -153,15 +147,9 @@
                 const cdy = Math.abs(ly) > CURSOR_DEADZONE ? ly * CURSOR_SPEED : 0;
                 if (cdx !== 0 || cdy !== 0) sendCursor(cdx, cdy);
             } else {
-                // Edge triggered like the D-pad.
-                if (lx > AXIS_THRESHOLD && lastLeftAxisX <= AXIS_THRESHOLD) sendKey('ArrowRight');
-                else if (lx < -AXIS_THRESHOLD && lastLeftAxisX >= -AXIS_THRESHOLD) sendKey('ArrowLeft');
-
-                if (ly > AXIS_THRESHOLD && lastLeftAxisY <= AXIS_THRESHOLD) sendKey('ArrowDown');
-                else if (ly < -AXIS_THRESHOLD && lastLeftAxisY >= -AXIS_THRESHOLD) sendKey('ArrowUp');
-
-                lastLeftAxisX = lx;
-                lastLeftAxisY = ly;
+                // Unlike the D-pad, a held stick direction repeats navigation.
+                navigateWithHeldStick(lx, 'x', now);
+                navigateWithHeldStick(ly, 'y', now);
             }
 
             // Right stick -> continuous scrolling (works in both modes).
@@ -202,6 +190,76 @@
             key: key
         }, '*');
     }
+
+    function applyMode(nextCursorMode) {
+        if (cursorMode === nextCursorMode) return;
+        cursorMode = nextCursorMode;
+        console.log('Couch Browser: cursorMode', cursorMode ? 'ON' : 'OFF');
+        sendKey(cursorMode ? 'CursorOn' : 'CursorOff');
+        // Avoid a stray navigation step when switching modes.
+        resetLeftStickNavigation();
+    }
+
+    function resetLeftStickNavigation() {
+        leftNavDirectionX = 0;
+        leftNavDirectionY = 0;
+        leftNavNextRepeatX = 0;
+        leftNavNextRepeatY = 0;
+    }
+
+    function navigateWithHeldStick(value, axis, now) {
+        const direction = value > AXIS_THRESHOLD ? 1 : value < -AXIS_THRESHOLD ? -1 : 0;
+        const key = axis === 'x'
+            ? (direction > 0 ? 'ArrowRight' : 'ArrowLeft')
+            : (direction > 0 ? 'ArrowDown' : 'ArrowUp');
+        const currentDirection = axis === 'x' ? leftNavDirectionX : leftNavDirectionY;
+        const nextRepeat = axis === 'x' ? leftNavNextRepeatX : leftNavNextRepeatY;
+
+        if (direction === 0) {
+            if (axis === 'x') {
+                leftNavDirectionX = 0;
+                leftNavNextRepeatX = 0;
+            } else {
+                leftNavDirectionY = 0;
+                leftNavNextRepeatY = 0;
+            }
+            return;
+        }
+
+        if (direction !== currentDirection) {
+            sendKey(key);
+            if (axis === 'x') {
+                leftNavDirectionX = direction;
+                leftNavNextRepeatX = now + NAV_REPEAT_DELAY;
+            } else {
+                leftNavDirectionY = direction;
+                leftNavNextRepeatY = now + NAV_REPEAT_DELAY;
+            }
+        } else if (now >= nextRepeat) {
+            sendKey(key);
+            if (axis === 'x') leftNavNextRepeatX = now + NAV_REPEAT_INTERVAL;
+            else leftNavNextRepeatY = now + NAV_REPEAT_INTERVAL;
+        }
+    }
+
+    function saveDefaultMode(mode) {
+        window.postMessage({
+            source: 'couch-browser-extension',
+            type: 'COUCH_BROWSER_DEFAULT_MODE_SET',
+            mode: mode
+        }, '*');
+    }
+
+    window.addEventListener('message', (event) => {
+        const data = event.data;
+        if (!data || data.source !== 'couch-browser-extension' || data.type !== 'COUCH_BROWSER_DEFAULT_MODE') return;
+        defaultMode = data.mode === 'cursor' ? 'cursor' : 'navigation';
+        window.CouchBrowserDefaultMode = defaultMode;
+        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        const gp = Array.from(gamepads || []).find(Boolean);
+        const rtActive = !!(gp && gp.buttons[BTN_RT] && (gp.buttons[BTN_RT].pressed || gp.buttons[BTN_RT].value > TRIGGER_THRESHOLD));
+        applyMode(defaultMode === 'cursor' ? !rtActive : rtActive);
+    });
 
     function sendScroll(dx, dy) {
         window.postMessage({

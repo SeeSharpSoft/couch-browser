@@ -40,7 +40,7 @@
         const key = `disabled_${domain}`;
         let result = {};
         try {
-            result = await chrome.storage.sync.get(key);
+            result = await chrome.storage.sync.get([key, 'defaultMode']);
         } catch (e) {
             console.error('Couch Browser: Failed to read storage', e);
         }
@@ -49,6 +49,12 @@
             console.log(`Couch Browser: Extension selection is disabled for ${domain}`);
             return;
         }
+
+        window.postMessage({
+            source: 'couch-browser-extension',
+            type: 'COUCH_BROWSER_DEFAULT_MODE',
+            mode: result.defaultMode === 'navigation' ? 'navigation' : 'cursor'
+        }, '*');
 
         console.log(`Couch Browser: Extension selection is enabled for ${domain}`);
 
@@ -102,8 +108,20 @@
                     console.error('Couch Browser: Failed to relay message', e);
                 }
             }
+            if (data && data.source === 'couch-browser-extension' && data.type === 'COUCH_BROWSER_DEFAULT_MODE_SET') {
+                chrome.storage.sync.set({ defaultMode: data.mode === 'cursor' ? 'cursor' : 'navigation' });
+            }
         });
     }
+
+    chrome.storage.onChanged.addListener((changes, area) => {
+        if (area !== 'sync' || !changes.defaultMode) return;
+        window.postMessage({
+            source: 'couch-browser-extension',
+            type: 'COUCH_BROWSER_DEFAULT_MODE',
+            mode: changes.defaultMode.newValue === 'navigation' ? 'navigation' : 'cursor'
+        }, '*');
+    });
     
     init();
 })();
