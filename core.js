@@ -648,20 +648,11 @@
     function startCursor() {
         if (!config.cursorMode) return;
         cursorActive = true;
-        // Start from the center of the current selection if available, else the
-        // viewport center.
-        const keyboardCursor = window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.cursorTarget();
-        if (keyboardCursor) {
-            cursorX = keyboardCursor.x;
-            cursorY = keyboardCursor.y;
-        } else if (currentElement && document.contains(currentElement)) {
-            const r = currentElement.getBoundingClientRect();
-            cursorX = r.left + r.width / 2;
-            cursorY = r.top + r.height / 2;
-        } else if (!cursorX && !cursorY) {
-            cursorX = window.innerWidth / 2;
-            cursorY = window.innerHeight / 2;
-        }
+        // Every cursor-mode activation starts at the center of the viewport.
+        // This also prevents a previous cursor position or selection from
+        // carrying over when the cursor becomes visible again.
+        cursorX = window.innerWidth / 2;
+        cursorY = window.innerHeight / 2;
         ensureCursor();
         positionCursor();
         if (cursorEl) cursorEl.style.display = 'block';

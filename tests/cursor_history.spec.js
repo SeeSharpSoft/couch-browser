@@ -36,6 +36,10 @@ test('Right trigger cursor mode moves a virtual cursor and clicks under it', asy
   expect(await page.evaluate(() => window.CouchBrowserSiteLogic.cursorActive)).toBe(true);
   const cursor = page.locator('#couch-browser-cursor');
   await expect(cursor).toBeVisible();
+  expect(await page.evaluate(() => {
+    const position = window.CouchBrowserSiteLogic.cursorPosition;
+    return position.x === window.innerWidth / 2 && position.y === window.innerHeight / 2;
+  })).toBe(true);
 
   // Move the virtual cursor to the center of the button.
   await page.evaluate(() => {

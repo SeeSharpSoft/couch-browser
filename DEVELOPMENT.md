@@ -219,7 +219,7 @@ When `config.cursorMode` is enabled, holding the right trigger sends `CursorOn`:
 - A `#couch-browser-cursor` element (a `position: fixed`, **`pointer-events: none`**,
   top-frame-only pointer) is shown. `pointer-events: none` is essential so
   `document.elementFromPoint` resolves to the page, not the cursor.
-- The cursor starts at the center of the current selection (or the viewport center)
+- The cursor starts at the center of the viewport whenever cursor mode is activated
   and is moved by `COUCH_BROWSER_CURSOR {dx, dy}` messages, clamped to the viewport.
 - The selection indicator is hidden while in cursor mode to keep the UI unambiguous.
 
