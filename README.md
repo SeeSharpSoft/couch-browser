@@ -1,5 +1,12 @@
 # Padflix
 
+<p align="center">
+  <a href="https://chromewebstore.google.com/detail/couch-browser-gamepad-sup/pjmhfjdepmaglpjpgaigbaabmmjagbmf">
+    <strong>🕹️ Get Couch Browser for Chrome</strong><br>
+    <sub>Install it from the Chrome Web Store</sub>
+  </a>
+</p>
+
 Padflix is a Chrome extension that enables **universal gamepad navigation for any webpage**. A central navigation engine highlights selectable UI elements and lets you move between them with the gamepad, while site-specific files only provide selectors and small behaviour tweaks.
 
 ## Features
@@ -12,6 +19,7 @@ Padflix is a Chrome extension that enables **universal gamepad navigation for an
 - **Spatial Navigation**: Move between on-screen elements based on their physical layout.
 - **Overlay Scoping**: When a modal/overlay/popup is open, navigation stays inside it so selection never lands on a layer behind it.
 - **Nested Drill-in**: Press **X** to drill into interactive elements nested inside the current one (e.g. links inside a clickable image); press **B** to drill back out.
+- **Virtual Keyboard**: Press **A** while a text input, textarea or editable field is selected to open an on-screen keyboard. The keyboard has a conventional layout, shows the active **X**, **Y** and **LT** controller badges, and temporarily takes over gamepad focus until it is closed.
 - **Key Mapping**:
   - **Left stick / D-pad**: spatial navigation between elements
   - **A**: Enter / click the selected element
@@ -22,6 +30,21 @@ Padflix is a Chrome extension that enables **universal gamepad navigation for an
   - **Right trigger (RT, hold)**: cursor mode — the left stick moves a virtual mouse cursor, **A** performs a mouse click at the cursor, and **LB/RB** switch browser tabs
   - **Y while holding RT**: reload the current browser tab
   - **Right stick**: scroll up/down and left/right
+
+### Virtual keyboard controls
+
+While the virtual keyboard is open:
+
+- **Left stick / D-pad**: navigate between virtual keys
+- **A**: activate the highlighted key
+- **B**: close the keyboard
+- **X**: activate Enter and close the keyboard
+- **Y**: Backspace
+- **LT**: hold for shifted characters, such as uppercase letters and symbols
+- **RT**: show the virtual cursor; moving it over a key highlights that key and **A** activates it
+- **Right stick**: move the caret in the active input field using arrow-key behavior
+
+The webpage cannot be navigated or scrolled with the gamepad while the keyboard is open. Press **B**, select the **Enter** key, or press **X** to hide it.
 
 ## Installation
 
@@ -45,6 +68,7 @@ Since this extension is currently in development, you need to load it as an "unp
 7.  Hold the **right trigger** to enter cursor mode: move the mouse cursor with the left stick and press **A** to click wherever the cursor is. While the trigger is held, the **left/right shoulder** buttons switch to the previous/next browser tab.
 8.  Press **Y while holding RT** to reload the current browser tab.
 9.  Use the **right stick** to scroll the page (or the nearest scrollable container).
+10. When a text input is selected, press **A** to open the virtual keyboard and use the controls described above to enter text.
 
 *Note: Navigation, activation and scrolling are all handled by the central engine (`core.js`) acting on its own tracked selection, independent of native `document.activeElement` quirks.*
 
