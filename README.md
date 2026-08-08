@@ -1,13 +1,13 @@
-# Padflix
+# Couch Browser
 
-<p align="center">
+<p style="text-align: center;">
   <a href="https://chromewebstore.google.com/detail/couch-browser-gamepad-sup/pjmhfjdepmaglpjpgaigbaabmmjagbmf">
     <strong>🕹️ Get Couch Browser for Chrome</strong><br>
     <sub>Install it from the Chrome Web Store</sub>
   </a>
 </p>
 
-Padflix is a Chrome extension that enables **universal gamepad navigation for any webpage**. A central navigation engine highlights selectable UI elements and lets you move between them with the gamepad, while site-specific files only provide selectors and small behaviour tweaks.
+Couch Browser is a Chrome extension that enables **universal gamepad navigation for any webpage**. A central navigation engine highlights selectable UI elements and lets you move between them with the gamepad, while site-specific files only provide selectors and small behaviour tweaks.
 
 ## Features
 
@@ -55,13 +55,13 @@ Since this extension is currently in development, you need to load it as an "unp
 3.  Enable **Developer mode** using the toggle switch in the top-right corner.
 4.  Click the **Load unpacked** button.
 5.  Select the folder containing this project (the folder where `manifest.json` is located).
-6.  **Pin the extension**: For easy access, click the puzzle piece icon in Chrome and "pin" Padflix to your toolbar.
+6.  **Pin the extension**: For easy access, click the puzzle piece icon in Chrome and "pin" Couch Browser to your toolbar.
 
 ## Usage
 
 1.  Connect a compatible gamepad to your computer.
 2.  Navigate to any website. The current element is highlighted automatically.
-3.  **Check Status**: Click the Padflix icon in your toolbar. It should show "Gamepad: Connected".
+3.  **Check Status**: Click the Couch Browser icon in your toolbar. It should show "Gamepad: Connected".
 4.  Use the **left stick / D-pad** to move the highlight between elements.
 5.  Press **A** to click/activate the selected element, **B** to go back / close an overlay, and **X** to drill into nested interactive elements.
 6.  Press the **left/right shoulder** buttons to navigate browser history (back/forward).

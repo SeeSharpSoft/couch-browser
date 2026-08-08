@@ -185,9 +185,7 @@
             }
         }
 
-        if (isObscured) return false;
-
-        return true;
+        return !isObscured;
     }
 
     function getActiveOverlay() {
@@ -326,7 +324,7 @@
         const root = getScope();
         const elements = getNavigableElements(root);
         if (elements.length === 0) {
-            console.log('Padflix: No navigable elements found');
+            console.log('Couch Browser: No navigable elements found');
             return;
         }
 
@@ -396,7 +394,7 @@
         if (target) {
             setCurrent(target);
         } else {
-            console.log('Padflix: No suitable next element found in direction', direction);
+            console.log('Couch Browser: No suitable next element found in direction', direction);
         }
     }
 
@@ -404,7 +402,7 @@
         if (!currentElement || !document.contains(currentElement)) return;
         const inner = getNavigableElements(currentElement);
         if (inner.length === 0) {
-            console.log('Padflix: Nothing to drill into');
+            console.log('Couch Browser: Nothing to drill into');
             return;
         }
         drillScope = currentElement;
@@ -555,7 +553,7 @@
                 if (selectionIndicator) selectionIndicator.style.display = 'none';
                 return;
             }
-            console.log('Padflix: Activating', el);
+            console.log('Couch Browser: Activating', el);
             el.click();
             setTimeout(() => checkScopeChange(), 100);
         }

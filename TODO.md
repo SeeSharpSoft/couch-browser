@@ -1,4 +1,4 @@
-# Padflix Repurpose — Outstanding Implementation Plan
+# Couch Browser Repurpose — Outstanding Implementation Plan
 
 > Goal: turn the Netflix-only gamepad navigation into **universal gamepad navigation
 > for every webpage**, driven by a central handler, with site-specific files only
@@ -27,11 +27,11 @@
 - `content.js` (isolated world): inject `gamepad.js`, `core.js`, then
   `sites/<domain>.js` (fallback `sites/default.js`). Preserve order via
   `script.async = false`.
-- `gamepad.js` (main world): pure input. Posts `PADFLIX_KEY` (`ArrowUp/Down/Left/Right`,
-  `Enter`, `Escape`, `PadX`) and `PADFLIX_SCROLL` (`{dx, dy}`). Keeps the connection
+- `gamepad.js` (main world): pure input. Posts `COUCH_BROWSER_KEY` (`ArrowUp/Down/Left/Right`,
+  `Enter`, `Escape`, `PadX`) and `COUCH_BROWSER_SCROLL` (`{dx, dy}`). Keeps the connection
   indicator.
 - `core.js` (main world): central navigation engine. Reads
-  `window.Padflix.registerSite(config)`; exposes `window.PadflixSiteLogic`.
+  `window.CouchBrowser.registerSite(config)`; exposes `window.CouchBrowserSiteLogic`.
 - `sites/default.js`: registers empty/base config (pure generic behavior).
 - `sites/netflix.com.js`: registers Netflix config.
 
@@ -41,7 +41,7 @@
 - [x] **`gamepad.js`** rewritten as pure input.
   - Edge-triggered A→`Enter`, B→`Escape`, X(2)→`PadX`, D-pad→`Arrow*`.
   - Left stick (axes 0/1) → edge-triggered `Arrow*`.
-  - Right stick (axes 2/3) → continuous `PADFLIX_SCROLL {dx,dy}` (deadzone 0.15,
+  - Right stick (axes 2/3) → continuous `COUCH_BROWSER_SCROLL {dx,dy}` (deadzone 0.15,
     speed 18 px/frame).
   - No synthetic DOM key dispatch anymore (avoids double-activation; core owns it).
   - Connection indicator removed.
@@ -51,12 +51,12 @@
 ## TODO  *(all items below implemented — see DEVELOPMENT.md for the resulting architecture)*
 
 ### 1. `core.js` — central navigation engine  *(DONE)*
-Create `d:\git\SeeSharpSoft\padflix\core.js` (Main World). Generalize the existing
+Create `d:\git\SeeSharpSoft\couch-browser\core.js` (Main World). Generalize the existing
 `sites/netflix.com.js` algorithm. Key pieces:
 
 **Config registration**
-- `window.Padflix = window.Padflix || {}`.
-- `window.Padflix.registerSite(cfg)` stores `cfg` and re-initializes (config may
+- `window.CouchBrowser = window.CouchBrowser || {}`.
+- `window.CouchBrowser.registerSite(cfg)` stores `cfg` and re-initializes (config may
   arrive after core loads; support late registration).
 - Merge over `DEFAULT_CONFIG`:
   ```js
@@ -143,17 +143,17 @@ provided) to choose the highlighted container; else highlight `el` directly.
 3. Else → dispatch a real `Escape` `keydown`/`keyup` to `currentElement`/document
    (for site compatibility), since gamepad.js no longer dispatches keys.
 
-**Scrolling (`PADFLIX_SCROLL`)** — handler:
+**Scrolling (`COUCH_BROWSER_SCROLL`)** — handler:
 - Find nearest scrollable ancestor of `currentElement` (computed
   `overflow-y/x` auto|scroll AND `scrollHeight>clientHeight` / `scrollWidth>clientWidth`);
   else `window`. Call `.scrollBy(dx, dy)` (or `window.scrollBy`). After scrolling,
   refresh the indicator position.
 
 **Message listener** (`window.addEventListener('message', ...)`)
-- Guard `event.data.source === 'padflix-extension'`.
-- `PADFLIX_KEY`: `Arrow*`→`navigate`, `Enter`→`activateCurrent`, `Escape`→back logic,
+- Guard `event.data.source === 'couch-browser-extension'`.
+- `COUCH_BROWSER_KEY`: `Arrow*`→`navigate`, `Enter`→`activateCurrent`, `Escape`→back logic,
   `PadX`→drill.
-- `PADFLIX_SCROLL`: scroll handler.
+- `COUCH_BROWSER_SCROLL`: scroll handler.
 
 **Keyboard sync**
 - `focusin` listener (skip when `suppressFocusSync`): adopt focus as `currentElement`
@@ -170,7 +170,7 @@ provided) to choose the highlighted container; else highlight `el` directly.
 
 **Public API** (for tests):
 ```js
-window.PadflixSiteLogic = {
+window.CouchBrowserSiteLogic = {
   update: () => updateSelectionIndicator(currentElement),
   navigate,
   get current() { return currentElement; }
@@ -178,7 +178,7 @@ window.PadflixSiteLogic = {
 ```
 
 ### 2. `sites/netflix.com.js` — convert to config registration  *(DONE)*
-Replace the whole file with a single `window.Padflix.registerSite({...})` call:
+Replace the whole file with a single `window.CouchBrowser.registerSite({...})` call:
 - `indicatorColor: '#E50914'`
 - `nesting: 'innermost'`  (preserves passing navigation test)
 - `useCursorPointer: false`
@@ -191,7 +191,7 @@ Replace the whole file with a single `window.Padflix.registerSite({...})` call:
   navigation-tab, nav-element, navigation-menu → else el).
 
 ### 3. `sites/default.js` — convert to config registration  *(DONE)*
-Replace with `window.Padflix.registerSite({})` (empty → all generic defaults).
+Replace with `window.CouchBrowser.registerSite({})` (empty → all generic defaults).
 Optional: keep a console log line for parity.
 
 ### 4. `content.js` — loader updates  *(DONE)*
@@ -294,7 +294,7 @@ const BTN_RT = 7;   // right trigger -> cursor mode modifier (analog)
 - **Cursor movement vs navigation (mutually exclusive):**
   - When `rtActive`:
     - Do **not** emit `Arrow*` from the left stick.
-    - Emit continuous `PADFLIX_CURSOR {dx, dy}` from axes 0/1 with a deadzone
+    - Emit continuous `COUCH_BROWSER_CURSOR {dx, dy}` from axes 0/1 with a deadzone
       (`CURSOR_DEADZONE ≈ 0.15`) and speed (`CURSOR_SPEED ≈ 12 px/frame` at full
       deflection). Mirror the existing right-stick scroll pattern.
   - When not `rtActive`: keep the current left-stick → edge-triggered `Arrow*`.
@@ -302,12 +302,12 @@ const BTN_RT = 7;   // right trigger -> cursor mode modifier (analog)
   `sendKey('MouseClick')` instead of `sendKey('Enter')`.
 - **Edge bookkeeping:** when RT toggles, reset `lastLeftAxisX/Y` to 0 so switching
   modes doesn't emit a spurious arrow edge on the next frame.
-- Right stick scrolling (`PADFLIX_SCROLL`) is unaffected and works in both modes.
+- Right stick scrolling (`COUCH_BROWSER_SCROLL`) is unaffected and works in both modes.
 
 **Message summary (new):**
-- `PADFLIX_KEY` keys added: `NavBack`, `NavForward`, `CursorOn`, `CursorOff`,
+- `COUCH_BROWSER_KEY` keys added: `NavBack`, `NavForward`, `CursorOn`, `CursorOff`,
   `MouseClick`.
-- New message type `PADFLIX_CURSOR` `{ dx, dy }` (continuous, like `PADFLIX_SCROLL`).
+- New message type `COUCH_BROWSER_CURSOR` `{ dx, dy }` (continuous, like `COUCH_BROWSER_SCROLL`).
 
 ## 2. `core.js` — engine changes  *(DONE)*
 
@@ -319,15 +319,15 @@ cursorMode: true           // RT cursor + mouse click
 (Sites can opt out if shoulder/trigger buttons conflict with site shortcuts.)
 
 **History navigation**
-- `PADFLIX_KEY` `NavBack` → `if (config.historyNavigation) window.history.back();`
-- `PADFLIX_KEY` `NavForward` → `if (config.historyNavigation) window.history.forward();`
+- `COUCH_BROWSER_KEY` `NavBack` → `if (config.historyNavigation) window.history.back();`
+- `COUCH_BROWSER_KEY` `NavForward` → `if (config.historyNavigation) window.history.forward();`
 - Only act in the top frame (`window.self === window.top`) to avoid an iframe
   navigating its own subframe history unexpectedly. (Verify against test needs.)
 
 **Virtual cursor state**
 - Track `cursorActive` (bool) and `cursorX`, `cursorY` (viewport coords). Initialize
   to the viewport center, or to the center of `currentElement` if one is selected.
-- `#padflix-cursor` element: a `position: fixed`, `pointer-events: none`,
+- `#couch-browser-cursor` element: a `position: fixed`, `pointer-events: none`,
   high-`z-index` pointer (small circle / arrow SVG). Created lazily like the other
   indicators; only added in the top frame.
 
@@ -337,7 +337,7 @@ cursorMode: true           // RT cursor + mouse click
   the selection indicator while in cursor mode.
 - `CursorOff`: set `cursorActive = false`, hide the cursor element, restore the
   selection indicator (`updateSelectionIndicator(currentElement)`).
-- `PADFLIX_CURSOR {dx, dy}`: if `cursorActive`, update `cursorX/Y` clamped to
+- `COUCH_BROWSER_CURSOR {dx, dy}`: if `cursorActive`, update `cursorX/Y` clamped to
   `[0, innerWidth] × [0, innerHeight]`, reposition the cursor element. (Ignore if
   not active.)
 - `MouseClick`: if `cursorActive`, resolve target via
@@ -361,11 +361,11 @@ cursorMode: true           // RT cursor + mouse click
   - **History:** stub/inject and verify `NavBack`/`NavForward` call
     `history.back()`/`forward()` (spy on `window.history`), or do a real two-page
     `file://` navigation and assert `location` changes.
-  - **Cursor:** send `CursorOn`, a few `PADFLIX_CURSOR` moves to position the cursor
+  - **Cursor:** send `CursorOn`, a few `COUCH_BROWSER_CURSOR` moves to position the cursor
     over a known element, then `MouseClick`; assert a click handler on the element
-    under the cursor fired and that `#padflix-cursor` is visible.
+    under the cursor fired and that `#couch-browser-cursor` is visible.
   - Confirm `CursorOff` hides the cursor and restores selection navigation.
-- Expose any needed hooks on `window.PadflixSiteLogic` for assertions (e.g.
+- Expose any needed hooks on `window.CouchBrowserSiteLogic` for assertions (e.g.
   `get cursorActive`, `get cursorPosition`) if direct DOM checks are insufficient.
 - Run headful via `npm test`; keep existing two specs green.
 
@@ -373,7 +373,7 @@ cursorMode: true           // RT cursor + mouse click
 - `README.md`: extend the button map — LB = back, RB = forward, RT (hold) = cursor
   mode (left stick moves cursor, A = mouse click).
 - `DEVELOPMENT.md`: document the new messages (`NavBack`, `NavForward`, `CursorOn`,
-  `CursorOff`, `MouseClick`, `PADFLIX_CURSOR`), the RT modifier model (mutually
+  `CursorOff`, `MouseClick`, `COUCH_BROWSER_CURSOR`), the RT modifier model (mutually
   exclusive stick mapping), the virtual cursor element, the synthesized click
   sequence via `elementFromPoint`, and the new optional config toggles.
 
@@ -411,9 +411,9 @@ tab instead of navigating history:
 When RT is *not* held the shoulders keep their Phase 2 behavior (browser back/forward).
 
 ## Implementation  *(DONE � 	ests/tab_switch.spec.js; all 8 specs pass)*
-1. `gamepad.js`: while RT is active, LB/RB post `PADFLIX_TAB { dir: 'prev'|'next' }`
+1. `gamepad.js`: while RT is active, LB/RB post `COUCH_BROWSER_TAB { dir: 'prev'|'next' }`
    instead of `NavBack`/`NavForward`.
-2. `content.js`: a **top-frame-only** listener relays `PADFLIX_TAB` to the
+2. `content.js`: a **top-frame-only** listener relays `COUCH_BROWSER_TAB` to the
    background worker via `chrome.runtime.sendMessage` (avoids iframe duplicates).
 3. `background.js` (new service worker): owns `chrome.tabs` � sorts the current
    window's tabs by `index`, finds the active one, activates the previous/next tab
