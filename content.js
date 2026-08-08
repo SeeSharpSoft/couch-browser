@@ -17,6 +17,7 @@
         // Gamepad polling must run in the Main World: Chrome does not expose
         // connected gamepads to content-script isolated worlds.
         injectScript('gamepad.js');
+        injectScript('virtual-keyboard.js');
 
         // Try to enable gamepad access for iframes by adding the allow attribute.
         if (window.self === window.top) {

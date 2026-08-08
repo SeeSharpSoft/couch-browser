@@ -38,7 +38,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["gamepad.js", "core.js", "sites/*.js"],
+      "resources": ["gamepad.js", "virtual-keyboard.js", "core.js", "sites/*.js"],
       "matches": ["<all_urls>"]
     }
   ]

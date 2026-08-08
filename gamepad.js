@@ -16,6 +16,7 @@
     const BTN_LB = 4;      // Browser back
     const BTN_RB = 5;      // Browser forward
     const BTN_RT = 7;      // Right trigger: hold for cursor (mouse) mode
+    const BTN_LT = 6;      // Left trigger: virtual keyboard shift
     const BTN_DPAD_UP = 12;
     const BTN_DPAD_DOWN = 13;
     const BTN_DPAD_LEFT = 14;
@@ -31,8 +32,11 @@
     const prevButtons = {};
     let lastLeftAxisX = 0;
     let lastLeftAxisY = 0;
+    let lastRightAxisX = 0;
+    let lastRightAxisY = 0;
     let lastPollTime = null;
     let cursorMode = false;       // true while the right trigger is held
+    let shiftMode = false;
 
     function edge(index, pressed) {
         const was = !!prevButtons[index];
@@ -93,15 +97,38 @@
                 lastLeftAxisY = 0;
             }
 
+            const ltActive = analog(BTN_LT) > TRIGGER_THRESHOLD || isDown(BTN_LT);
+            if (edge(BTN_LT, ltActive)) {
+                shiftMode = true;
+                sendKey('ShiftOn');
+            } else if (!ltActive && shiftMode) {
+                shiftMode = false;
+                sendKey('ShiftOff');
+            }
+
             // A: click element under cursor in cursor mode, else activate selection.
-            if (edge(BTN_A, isDown(BTN_A))) sendKey(cursorMode ? 'MouseClick' : 'Enter');
+            if (edge(BTN_A, isDown(BTN_A))) {
+                if (!cursorMode && window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) sendKey('KeyboardActivate');
+                else sendKey(cursorMode ? 'MouseClick' : 'Enter');
+            }
             if (edge(BTN_B, isDown(BTN_B))) {
                 console.log('Couch Browser: B button pressed, cursorMode:', cursorMode);
-                if (cursorMode) sendTabClose(); else sendKey('Escape');
+                if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) {
+                    sendKey('Escape');
+                } else if (cursorMode) sendTabClose(); else sendKey('Escape');
             }
-            if (edge(BTN_X, isDown(BTN_X))) sendKey('PadX');
-            // Y reloads the current tab only while RT/cursor mode is active.
-            if (edge(BTN_Y, isDown(BTN_Y)) && cursorMode) sendTabReload();
+            if (edge(BTN_X, isDown(BTN_X))) {
+                sendKey(window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen() ? 'Enter' : 'PadX');
+            }
+            // Y is Backspace for the virtual keyboard. Outside the keyboard it
+            // retains its existing RT/cursor-mode reload behavior.
+            if (edge(BTN_Y, isDown(BTN_Y))) {
+                if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) {
+                    sendKey('KeyboardBackspace');
+                } else if (cursorMode) {
+                    sendTabReload();
+                }
+            }
 
             // Shoulder buttons: browser history navigation, or — while the right
             // trigger is held (cursor mode) — switch to the previous/next tab.
@@ -140,10 +167,22 @@
             // Right stick -> continuous scrolling (works in both modes).
             const rx = gp.axes && gp.axes.length > 2 ? gp.axes[2] : 0;
             const ry = gp.axes && gp.axes.length > 3 ? gp.axes[3] : 0;
-            const scrollStep = SCROLL_SPEED * elapsed;
-            const dx = Math.abs(rx) > SCROLL_DEADZONE ? rx * scrollStep : 0;
-            const dy = Math.abs(ry) > SCROLL_DEADZONE ? ry * scrollStep : 0;
-            if (dx !== 0 || dy !== 0) sendScroll(dx, dy);
+            const keyboardOpen = window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen();
+            if (keyboardOpen) {
+                if (rx > AXIS_THRESHOLD && lastRightAxisX <= AXIS_THRESHOLD) sendKey('InputArrowRight');
+                else if (rx < -AXIS_THRESHOLD && lastRightAxisX >= -AXIS_THRESHOLD) sendKey('InputArrowLeft');
+                if (ry > AXIS_THRESHOLD && lastRightAxisY <= AXIS_THRESHOLD) sendKey('InputArrowDown');
+                else if (ry < -AXIS_THRESHOLD && lastRightAxisY >= -AXIS_THRESHOLD) sendKey('InputArrowUp');
+                lastRightAxisX = rx;
+                lastRightAxisY = ry;
+            } else {
+                const scrollStep = SCROLL_SPEED * elapsed;
+                const dx = Math.abs(rx) > SCROLL_DEADZONE ? rx * scrollStep : 0;
+                const dy = Math.abs(ry) > SCROLL_DEADZONE ? ry * scrollStep : 0;
+                if (dx !== 0 || dy !== 0) sendScroll(dx, dy);
+                lastRightAxisX = 0;
+                lastRightAxisY = 0;
+            }
         }
         requestAnimationFrame(pollGamepad);
     }

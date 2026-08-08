@@ -318,6 +318,10 @@
     }
 
     function navigate(direction) {
+        if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) {
+            window.CouchBrowserVirtualKeyboard.navigate(direction);
+            return;
+        }
         checkScopeChange();
         const root = getScope();
         const elements = getNavigableElements(root);
@@ -424,6 +428,11 @@
     // (that is the LB shoulder button). It unwinds the current interaction:
     // drill-out, then close an open popup/overlay, then dispatch Escape.
     function back() {
+        if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) {
+            window.CouchBrowserVirtualKeyboard.close();
+            updateSelectionIndicator(currentElement);
+            return;
+        }
         const overlay = getActiveOverlay();
 
         // 1. Drilled in (and no overlay above) -> drill back out.
@@ -537,6 +546,15 @@
     function activateCurrent() {
         const el = currentElement && document.contains(currentElement) ? currentElement : document.activeElement;
         if (el && el !== document.body && el !== document.documentElement) {
+            if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) {
+                window.CouchBrowserVirtualKeyboard.activate();
+                return;
+            }
+            if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isTextTarget(el)) {
+                window.CouchBrowserVirtualKeyboard.open(el);
+                if (selectionIndicator) selectionIndicator.style.display = 'none';
+                return;
+            }
             console.log('Padflix: Activating', el);
             el.click();
             setTimeout(() => checkScopeChange(), 100);
@@ -557,6 +575,7 @@
     }
 
     function handleScroll(dx, dy) {
+        if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) return;
         const scrollable = getScrollable(currentElement);
         if (scrollable) {
             // Explicitly request instant scrolling. Both scrollBy() and
@@ -633,7 +652,11 @@
         cursorActive = true;
         // Start from the center of the current selection if available, else the
         // viewport center.
-        if (currentElement && document.contains(currentElement)) {
+        const keyboardCursor = window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.cursorTarget();
+        if (keyboardCursor) {
+            cursorX = keyboardCursor.x;
+            cursorY = keyboardCursor.y;
+        } else if (currentElement && document.contains(currentElement)) {
             const r = currentElement.getBoundingClientRect();
             cursorX = r.left + r.width / 2;
             cursorY = r.top + r.height / 2;
@@ -644,6 +667,9 @@
         ensureCursor();
         positionCursor();
         if (cursorEl) cursorEl.style.display = 'block';
+        if (window.CouchBrowserVirtualKeyboard) {
+            window.CouchBrowserVirtualKeyboard.animateSelected();
+        }
         // Hide the selection indicator so the UI is unambiguous in cursor mode.
         if (selectionIndicator) selectionIndicator.style.display = 'none';
     }
@@ -659,10 +685,14 @@
         cursorX = Math.max(0, Math.min(window.innerWidth, cursorX + dx));
         cursorY = Math.max(0, Math.min(window.innerHeight, cursorY + dy));
         positionCursor();
+        if (window.CouchBrowserVirtualKeyboard) {
+            window.CouchBrowserVirtualKeyboard.cursorMove(cursorX, cursorY);
+        }
     }
 
     function cursorClick() {
         if (!cursorActive) return;
+        if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.cursorClick(cursorX, cursorY)) return;
         const target = document.elementFromPoint(cursorX, cursorY);
         if (!target || target === document.body || target === document.documentElement) return;
         const opts = {
@@ -767,7 +797,17 @@
             }
         } else if (event.data.type === 'COUCH_BROWSER_KEY') {
             const key = event.data.key;
-            if (['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'].includes(key)) {
+            if (key === 'ShiftOn' || key === 'ShiftOff') {
+                if (window.CouchBrowserVirtualKeyboard) window.CouchBrowserVirtualKeyboard.setShift(key === 'ShiftOn');
+            } else if (key === 'KeyboardBackspace' && window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) {
+                window.CouchBrowserVirtualKeyboard.backspace();
+            } else if (key.indexOf('InputArrow') === 0 && window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) {
+                window.CouchBrowserVirtualKeyboard.moveCaret(key.substring('Input'.length));
+            } else if (key === 'KeyboardActivate' && window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) {
+                window.CouchBrowserVirtualKeyboard.activate();
+            } else if (key === 'Enter' && window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) {
+                window.CouchBrowserVirtualKeyboard.enter();
+            } else if (['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'].includes(key)) {
                 navigate(key);
             } else if (key === 'Enter') {
                 activateCurrent();
