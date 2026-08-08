@@ -41,6 +41,7 @@
     let lastPollTime = null;
     let defaultMode = 'cursor'; // persisted default; RT temporarily inverts it
     let cursorMode = false;         // effective mode after applying RT
+    let cursorInputActive = false;  // last movement in cursor mode came from left stick
     let cursorSpeed = DEFAULT_CURSOR_SPEED;
     let scrollSpeed = DEFAULT_SCROLL_SPEED;
     let shiftMode = false;
@@ -102,8 +103,10 @@
 
             // A: click element under cursor in cursor mode, else activate selection.
             if (edge(BTN_A, isDown(BTN_A))) {
-                if (!cursorMode && window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) sendKey('KeyboardActivate');
-                else sendKey(cursorMode ? 'MouseClick' : 'Enter');
+                const keyboardOpen = window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen();
+                if (cursorMode && cursorInputActive) sendKey('MouseClick');
+                else if (keyboardOpen) sendKey('KeyboardActivate');
+                else sendKey('Enter');
             }
             if (edge(BTN_B, isDown(BTN_B))) {
                 console.log('Couch Browser: B button pressed, cursorMode:', cursorMode);
@@ -135,10 +138,10 @@
                 if (cursorMode) sendTab('next'); else sendKey('NavForward');
             }
 
-            if (edge(BTN_DPAD_UP, isDown(BTN_DPAD_UP))) sendKey('ArrowUp');
-            if (edge(BTN_DPAD_DOWN, isDown(BTN_DPAD_DOWN))) sendKey('ArrowDown');
-            if (edge(BTN_DPAD_LEFT, isDown(BTN_DPAD_LEFT))) sendKey('ArrowLeft');
-            if (edge(BTN_DPAD_RIGHT, isDown(BTN_DPAD_RIGHT))) sendKey('ArrowRight');
+            if (edge(BTN_DPAD_UP, isDown(BTN_DPAD_UP))) { cursorInputActive = false; sendKey('ArrowUp'); }
+            if (edge(BTN_DPAD_DOWN, isDown(BTN_DPAD_DOWN))) { cursorInputActive = false; sendKey('ArrowDown'); }
+            if (edge(BTN_DPAD_LEFT, isDown(BTN_DPAD_LEFT))) { cursorInputActive = false; sendKey('ArrowLeft'); }
+            if (edge(BTN_DPAD_RIGHT, isDown(BTN_DPAD_RIGHT))) { cursorInputActive = false; sendKey('ArrowRight'); }
 
             // Left stick: cursor movement in cursor mode, else directional navigation.
             const lx = gp.axes && gp.axes.length > 0 ? gp.axes[0] : 0;
@@ -147,7 +150,10 @@
             if (cursorMode) {
                 const cdx = Math.abs(lx) > CURSOR_DEADZONE ? lx * cursorSpeed : 0;
                 const cdy = Math.abs(ly) > CURSOR_DEADZONE ? ly * cursorSpeed : 0;
-                if (cdx !== 0 || cdy !== 0) sendCursor(cdx, cdy);
+                if (cdx !== 0 || cdy !== 0) {
+                    cursorInputActive = true;
+                    sendCursor(cdx, cdy);
+                }
             } else {
                 // Unlike the D-pad, a held stick direction repeats navigation.
                 navigateWithHeldStick(lx, 'x', now);
@@ -196,6 +202,7 @@
     function applyMode(nextCursorMode) {
         if (cursorMode === nextCursorMode) return;
         cursorMode = nextCursorMode;
+        cursorInputActive = false;
         console.log('Couch Browser: cursorMode', cursorMode ? 'ON' : 'OFF');
         sendKey(cursorMode ? 'CursorOn' : 'CursorOff');
         // Avoid a stray navigation step when switching modes.

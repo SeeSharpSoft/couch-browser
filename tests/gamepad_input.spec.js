@@ -46,6 +46,25 @@ test('cursor is the default mode and RT temporarily inverts it', async () => {
   await page.evaluate(() => window.__setButton(7, false));
   await page.waitForTimeout(100);
   expect(await page.evaluate(() => window.__keys.at(-1))).toBe('CursorOn');
+
+  // Left-stick cursor movement makes A target the virtual cursor. D-pad
+  // navigation switches A back to the selected element.
+  await page.evaluate(() => window.__setAxis(0, 1));
+  await page.waitForTimeout(80);
+  await page.evaluate(() => window.__setButton(0, true));
+  await page.waitForTimeout(80);
+  expect(await page.evaluate(() => window.__keys.at(-1))).toBe('MouseClick');
+  await page.evaluate(() => {
+    window.__setButton(0, false);
+    window.__setAxis(0, 0);
+    window.__setButton(15, true);
+  });
+  await page.waitForTimeout(80);
+  await page.evaluate(() => window.__setButton(15, false));
+  await page.waitForTimeout(50);
+  await page.evaluate(() => window.__setButton(0, true));
+  await page.waitForTimeout(80);
+  expect(await page.evaluate(() => window.__keys.at(-1))).toBe('Enter');
   await context.close();
 });
 
