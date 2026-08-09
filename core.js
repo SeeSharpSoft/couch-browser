@@ -26,7 +26,10 @@
             '[role="dialog"]', '[aria-modal="true"]', 'dialog[open]',
             '.modal.show', '.modal[open]', '.popup', '.overlay'
         ],
-        closeSelectors: 'button[aria-label*="close" i], [data-uia*="close" i], [aria-label*="Close" i], .close',
+        closeSelectors: [
+            'button[aria-label*="close" i]', '[data-uia*="close" i]',
+            '[aria-label*="Close" i]', '.close'
+        ],
         getContainer: null,            // (el) => Element|null, for indicator placement
         firstElementSelectors: [],     // preferred initial selection
         nesting: 'outermost',          // 'outermost' | 'innermost'
@@ -451,7 +454,8 @@
         // 2. Overlay/popup open -> close it. Prefer its close button; otherwise
         //    dispatch Escape into the overlay so popups that close on Escape do.
         if (overlay) {
-            const close = overlay.querySelector(config.closeSelectors);
+            const closeSelector = (config.closeSelectors || []).join(',');
+            const close = closeSelector ? overlay.querySelector(closeSelector) : null;
             if (close) { close.click(); }
             else { dispatchEscape(overlay); }
             setTimeout(() => checkScopeChange(), 100);

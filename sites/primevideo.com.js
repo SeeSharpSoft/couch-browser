@@ -68,7 +68,7 @@
             '[aria-label*="close" i]',
             '.av-dialog-close',
             '.tst-modal-close'
-        ].join(','),
+        ],
         firstElementSelectors: [
             '.tst-navigation-item a',
             '.tst-title-card a',

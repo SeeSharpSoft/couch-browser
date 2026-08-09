@@ -51,7 +51,12 @@
             '[role="dialog"]',
             '[aria-modal="true"]'
         ],
-        closeSelectors: '[data-uia*="close" i], .previewModal-close, button[aria-label*="close" i], [aria-label*="Close" i]',
+        closeSelectors: [
+            '[data-uia*="close" i]',
+            '.previewModal-close',
+            'button[aria-label*="close" i]',
+            '[aria-label*="Close" i]'
+        ],
         firstElementSelectors: [
             '.navigation-tab a',
             '[data-uia="play-button"]',

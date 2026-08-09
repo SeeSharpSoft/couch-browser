@@ -69,7 +69,10 @@ Create `d:\git\SeeSharpSoft\couch-browser\core.js` (Main World). Generalize the 
       '[role="dialog"]', '[aria-modal="true"]', 'dialog[open]',
       '.modal.show', '.modal[open]', '.popup', '.overlay'
     ],
-    closeSelectors: 'button[aria-label*="close" i], [data-uia*="close" i], [aria-label*="Close" i], .close',
+    closeSelectors: [
+      'button[aria-label*="close" i]', '[data-uia*="close" i]',
+      '[aria-label*="Close" i]', '.close'
+    ],
     getContainer: null,            // (el) => Element|null, for indicator placement
     firstElementSelectors: [],     // preferred initial selection
     nesting: 'outermost',          // 'outermost' | 'innermost'
@@ -185,7 +188,7 @@ Replace the whole file with a single `window.CouchBrowser.registerSite({...})` c
 - `captureKeyboard: true`
 - `extraSelectors`: the current `NAV_SELECTORS` array.
 - `overlaySelectors`: the current `OVERLAY_SELECTORS` array.
-- `closeSelectors`: `'[data-uia*="close" i], .previewModal-close, button[aria-label*="close" i], [aria-label*="Close" i]'`
+- `closeSelectors`: `['[data-uia*="close" i]', '.previewModal-close', 'button[aria-label*="close" i]', '[aria-label*="Close" i]']`
 - `firstElementSelectors`: `['.navigation-tab a', '[data-uia="play-button"]', '.title-card a, .slider-refocus']`
 - `getContainer`: port `getTargetElement()` (title-card-container, billboard-links,
   navigation-tab, nav-element, navigation-menu → else el).
