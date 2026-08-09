@@ -24,10 +24,9 @@
         name: 'netflix.com',
         indicatorColor: '#E50914',
         // Netflix manages its own focus; preserve the original innermost-leaf
-        // navigation behaviour and intercept real arrow keys.
+        // navigation behaviour.
         nesting: 'innermost',
         useCursorPointer: false,
-        captureKeyboard: true,
         extraSelectors: [
             '.navigation-tab a',
             'a.menu-trigger[data-uia="main-header-menu-trigger"]',
