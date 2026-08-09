@@ -97,7 +97,34 @@
         }
     }
 
-    // Relay tab-switch intents (right trigger + shoulder buttons) from the page's
+    function isTransientRelayError(error) {
+        const message = error && error.message ? error.message : String(error || '');
+        return /extension context invalidated|receiving end does not exist|could not establish connection|message port closed/i.test(message);
+    }
+
+    function relayToBackground(data) {
+        try {
+            // The content script can outlive the extension briefly during an
+            // extension reload or tab teardown. In that window Chrome throws
+            // synchronously before a message can be delivered.
+            if (!chrome.runtime || !chrome.runtime.id) return;
+
+            // Use the callback form so runtime.lastError is consumed. The
+            // Promise form otherwise produces an unhandled rejection when the
+            // service worker is restarting or the page is being closed.
+            chrome.runtime.sendMessage(data, () => {
+                const error = chrome.runtime.lastError;
+                if (!error || isTransientRelayError(error)) return;
+                console.error('Couch Browser: Failed to relay message', error);
+            });
+        } catch (e) {
+            if (!isTransientRelayError(e)) {
+                console.error('Couch Browser: Failed to relay message', e);
+            }
+        }
+    }
+
+    // Relay tab-switch intents (LT + shoulder buttons) from the page's
     // Main World to the background service worker, which owns the chrome.tabs API.
     // Only the top frame relays so iframes don't trigger duplicate switches.
     if (window.self === window.top) {
@@ -109,11 +136,7 @@
             // the message marker instead of event.source.
             if (data && data.source === 'couch-browser-extension' && (data.type === 'COUCH_BROWSER_TAB' || data.type === 'COUCH_BROWSER_TAB_CLOSE' || data.type === 'COUCH_BROWSER_TAB_RELOAD')) {
                 console.log('Couch Browser: Relaying message to background:', data.type);
-                try {
-                    chrome.runtime.sendMessage(data);
-                } catch (e) {
-                    console.error('Couch Browser: Failed to relay message', e);
-                }
+                relayToBackground(data);
             }
             if (data && data.source === 'couch-browser-extension' && data.type === 'COUCH_BROWSER_DEFAULT_MODE_SET') {
                 chrome.storage.sync.set({ defaultMode: data.mode === 'cursor' ? 'cursor' : 'navigation' });

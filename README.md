@@ -12,7 +12,7 @@ Couch Browser is a Chrome extension that enables **universal gamepad navigation 
 ## Features
 
 - **Universal Navigation**: Works on any website, not just streaming sites. Links, buttons, inputs, ARIA roles and other interactive elements are detected automatically.
-- **History Navigation**: Shoulder buttons go back/forward in the browser history (or switch tabs when the right trigger is held).
+- **History Navigation**: Shoulder buttons go back/forward in the browser history; hold LT to switch tabs.
 - **Cursor Mode**: Cursor mode is the default. RT temporarily switches to navigation mode. The real OS cursor is hidden while you use the gamepad and reappears when you move the mouse.
 - **Visual Selection Indicator**: A highlight border is drawn around the currently selected element. Themeable per site (green by default, Netflix red on Netflix).
 - **Connection Indicator**: A gamepad icon appears in the top-right corner of the page. It turns green when a gamepad is connected and active.
@@ -25,8 +25,8 @@ Couch Browser is a Chrome extension that enables **universal gamepad navigation 
   - **A**: Enter / click the selected element
   - **B**: Escape / back (close overlay, exit drill-in, or dispatch Escape)
   - **X**: drill into nested interactive elements
-  - **Left shoulder (LB)**: browser **back** (or **previous tab** while the right trigger is held)
-  - **Right shoulder (RB)**: browser **forward** (or **next tab** while the right trigger is held)
+  - **Left shoulder (LB)**: browser **back** (or **previous tab** while LT is held)
+  - **Right shoulder (RB)**: browser **forward** (or **next tab** while LT is held)
   - **Right trigger (RT, hold)**: temporarily switch to the alternative mode
   - **RT + Y**: toggle the default mode
   - **LT + Y**: reload the current browser tab (when the virtual keyboard is closed)
@@ -66,8 +66,8 @@ Since this extension is currently in development, you need to load it as an "unp
 4.  Use the **left stick / D-pad** to move the highlight between elements.
 5.  Press **A** to click/activate the selected element, **B** to go back / close an overlay, and **X** to drill into nested interactive elements.
 6.  Press the **left/right shoulder** buttons to navigate browser history (back/forward).
-7.  Cursor mode is active by default. Hold **RT** to temporarily use navigation mode; in cursor mode the left stick moves the mouse cursor and **A** clicks. While cursor mode is active, **LB/RB** switch to the previous/next browser tab.
-8.  Use **RT + Y** to quickly switch the default mode, or **LT + Y** to reload the current browser tab.
+7.  Cursor mode is active by default. Hold **RT** to temporarily use navigation mode; in cursor mode the left stick moves the mouse cursor and **A** clicks.
+8.  Hold **LT** for browser actions: **LT + B** closes the current tab, **LT + Y** reloads it, and **LT + LB/RB** switches tabs. Use **RT + Y** to toggle the default mode.
 9.  Use the **right stick** to scroll the page (or the nearest scrollable container).
 10. When a text input is selected, press **A** to open the virtual keyboard and use the controls described above to enter text.
 

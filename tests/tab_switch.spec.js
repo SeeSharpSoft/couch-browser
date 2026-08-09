@@ -3,7 +3,7 @@ const path = require('path');
 
 const extensionPath = path.join(__dirname, '..');
 
-test('Right trigger + shoulder buttons switch browser tabs', async () => {
+test('Tab switch intents activate the previous and next browser tabs', async () => {
   const userDataDir = path.join(__dirname, '..', 'user-data-tabs');
   const context = await chromium.launchPersistentContext(userDataDir, {
     headless: false,
@@ -24,7 +24,7 @@ test('Right trigger + shoulder buttons switch browser tabs', async () => {
   await page1.bringToFront();
   await page1.waitForTimeout(200);
 
-  // Simulate the right trigger held + left shoulder -> switch to previous tab.
+  // The gamepad input test verifies LT + LB/RB produce these intents.
   await page1.evaluate(() => window.postMessage({ source: 'couch-browser-extension', type: 'COUCH_BROWSER_TAB', dir: 'prev' }, '*'));
 
   // Tab 0 should become active (visible) and tab 1 hidden.

@@ -109,10 +109,10 @@
                 else sendKey('Enter');
             }
             if (edge(BTN_B, isDown(BTN_B))) {
-                console.log('Couch Browser: B button pressed, cursorMode:', cursorMode);
+                console.log('Couch Browser: B button pressed, LT:', ltActive);
                 if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen()) {
                     sendKey('Escape');
-                } else if (cursorMode) sendTabClose(); else sendKey('Escape');
+                } else if (ltActive) sendTabClose(); else sendKey('Escape');
             }
             if (edge(BTN_X, isDown(BTN_X))) {
                 sendKey(window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isOpen() ? 'Enter' : 'PadX');
@@ -129,13 +129,13 @@
                 }
             }
 
-            // Shoulder buttons: browser history navigation, or — while the right
-            // trigger is held (cursor mode) — switch to the previous/next tab.
+            // LT modifies the shoulder buttons into tab switching. Otherwise
+            // they always navigate browser history, regardless of cursor mode.
             if (edge(BTN_LB, isDown(BTN_LB))) {
-                if (cursorMode) sendTab('prev'); else sendKey('NavBack');
+                if (ltActive) sendTab('prev'); else sendKey('NavBack');
             }
             if (edge(BTN_RB, isDown(BTN_RB))) {
-                if (cursorMode) sendTab('next'); else sendKey('NavForward');
+                if (ltActive) sendTab('next'); else sendKey('NavForward');
             }
 
             if (edge(BTN_DPAD_UP, isDown(BTN_DPAD_UP))) { cursorInputActive = false; sendKey('ArrowUp'); }
@@ -184,14 +184,6 @@
     }
 
     function sendKey(key) {
-        if (key === 'NavBack') {
-            window.history.back();
-            return;
-        }
-        if (key === 'NavForward') {
-            window.history.forward();
-            return;
-        }
         window.postMessage({
             source: 'couch-browser-extension',
             type: 'COUCH_BROWSER_KEY',

@@ -68,6 +68,67 @@ test('cursor is the default mode and RT temporarily inverts it', async () => {
   await context.close();
 });
 
+test('LT modifies B, Y and LB/RB into browser actions in every mode', async () => {
+  const context = await chromium.launch();
+  const page = await context.newPage();
+  await setupGamepad(page);
+  await page.goto('data:text/html,<html><body></body></html>');
+  await page.evaluate(() => {
+    window.__messages = [];
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.source === 'couch-browser-extension' &&
+          ['COUCH_BROWSER_TAB', 'COUCH_BROWSER_TAB_CLOSE', 'COUCH_BROWSER_KEY'].includes(event.data.type)) {
+        window.__messages.push(event.data);
+      }
+    });
+  });
+  await page.addScriptTag({ content: fs.readFileSync(path.join(extensionPath, 'gamepad.js'), 'utf8') });
+  await page.waitForTimeout(100);
+
+  // LT + LB switches to the previous tab, independent of cursor mode.
+  await page.evaluate(() => window.__setButton(6, true));
+  await page.waitForTimeout(50);
+  await page.evaluate(() => window.__setButton(4, true));
+  await page.waitForTimeout(80);
+  expect(await page.evaluate(() => window.__messages.at(-1))).toMatchObject({
+    type: 'COUCH_BROWSER_TAB', dir: 'prev'
+  });
+
+  // Release LB, then LT + RB switches to the next tab.
+  await page.evaluate(() => {
+    window.__setButton(4, false);
+    window.__setButton(5, true);
+  });
+  await page.waitForTimeout(80);
+  expect(await page.evaluate(() => window.__messages.at(-1))).toMatchObject({
+    type: 'COUCH_BROWSER_TAB', dir: 'next'
+  });
+
+  // LT + B closes the tab rather than sending contextual Escape.
+  await page.evaluate(() => {
+    window.__setButton(5, false);
+    window.__setButton(1, true);
+  });
+  await page.waitForTimeout(80);
+  expect(await page.evaluate(() => window.__messages.at(-1))).toMatchObject({
+    type: 'COUCH_BROWSER_TAB_CLOSE'
+  });
+
+  // Without LT, B remains the normal contextual back action.
+  await page.evaluate(() => {
+    window.__setButton(1, false);
+    window.__setButton(6, false);
+  });
+  await page.waitForTimeout(80);
+  await page.evaluate(() => window.__setButton(1, true));
+  await page.waitForTimeout(80);
+  expect(await page.evaluate(() => window.__messages.at(-1))).toMatchObject({
+    type: 'COUCH_BROWSER_KEY', key: 'Escape'
+  });
+
+  await context.close();
+});
+
 test('RT + Y toggles the default and a held left stick repeats navigation', async () => {
   const context = await chromium.launchPersistentContext(path.join(__dirname, '..', 'user-data-gamepad-repeat'), {
     headless: false,
