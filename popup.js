@@ -4,6 +4,7 @@ const cursorSpeed = document.getElementById('cursor-speed');
 const scrollSpeed = document.getElementById('scroll-speed');
 const cursorSpeedValue = document.getElementById('cursor-speed-value');
 const scrollSpeedValue = document.getElementById('scroll-speed-value');
+const extensionVersion = document.getElementById('extension-version');
 let currentDomain = '';
 
 const DEFAULT_CURSOR_SPEED = 25;
@@ -37,6 +38,7 @@ function updateStatus() {
 }
 
 async function init() {
+    extensionVersion.textContent = chrome.runtime.getManifest().version;
     let currentTabId = null;
 
     // Get current tab domain

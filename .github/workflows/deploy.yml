@@ -8,13 +8,35 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Zip extension
         run: |
-          zip -r extension.zip . -x "*.git*" ".github*" "node_modules*" "tests*" "test-results*" "user-data*" ".gitignore" "package.json" "package-lock.json" "README.md" "DEVELOPMENT.md" "TODO.md"
+          # Keep build/test/repository files out of the store upload. A Chrome
+          # extension ZIP must contain manifest.json at its root.
+          zip -q -r extension.zip \
+            manifest.json \
+            background.js \
+            content.js \
+            core.js \
+            gamepad.js \
+            virtual-keyboard.js \
+            popup.html \
+            popup.js \
+            icons/*.png \
+            sites/*.js
+
+      - name: Validate extension package
+        shell: bash
+        run: |
+          test -f manifest.json
+          node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('manifest.json')); if (!m.version) throw new Error('manifest.json has no version'); console.log('Extension version:', m.version)"
+          unzip -tq extension.zip
+          unzip -l extension.zip
 
       - name: Upload to Chrome Web Store
         uses: mnao305/chrome-extension-upload@v5.0.0
