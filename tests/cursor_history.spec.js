@@ -30,6 +30,22 @@ test('Right trigger cursor mode moves a virtual cursor and clicks under it', asy
   });
 
   // Enter cursor mode (right trigger held).
+  await page.evaluate(() => {
+    window.navigator.getGamepads = () => [];
+    window.postMessage({ source: 'couch-browser-extension', type: 'COUCH_BROWSER_CONNECTION', connected: false }, '*');
+  });
+  await postKey(page, 'CursorOn');
+  await expect(page.locator('#couch-browser-cursor')).toBeHidden();
+
+  await page.evaluate(() => {
+    window.navigator.getGamepads = () => [{}];
+  });
+  await page.waitForTimeout(100);
+  await page.evaluate(() => window.postMessage({
+    source: 'couch-browser-extension',
+    type: 'COUCH_BROWSER_CONNECTION',
+    connected: true
+  }, '*'));
   await postKey(page, 'CursorOn');
   await page.waitForTimeout(100);
 

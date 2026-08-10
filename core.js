@@ -70,6 +70,8 @@
     let cursorActive = false;
     let cursorX = 0;
     let cursorY = 0;
+    let cursorHideTimer = null;
+    const CURSOR_IDLE_TIMEOUT = 30000;
     // Our own source of truth for the selected element. We do NOT rely on
     // document.activeElement / focus events alone, because many sites manage
     // focus themselves and .focus() does not reliably move activeElement.
@@ -650,6 +652,34 @@
         cursorEl.style.top = cursorY + 'px';
     }
 
+    function hideCursorVisual() {
+        if (cursorHideTimer !== null) {
+            clearTimeout(cursorHideTimer);
+            cursorHideTimer = null;
+        }
+        if (cursorEl) cursorEl.style.display = 'none';
+    }
+
+    function scheduleCursorHide() {
+        if (cursorHideTimer !== null) clearTimeout(cursorHideTimer);
+        cursorHideTimer = setTimeout(() => {
+            cursorHideTimer = null;
+            if (cursorActive) hideCursorVisual();
+        }, CURSOR_IDLE_TIMEOUT);
+    }
+
+    function showCursorVisual() {
+        if (!cursorActive) return;
+        if (!isGamepadConnected) {
+            hideCursorVisual();
+            return;
+        }
+        ensureCursor();
+        positionCursor();
+        if (cursorEl) cursorEl.style.display = 'block';
+        scheduleCursorHide();
+    }
+
     function startCursor() {
         cursorActive = true;
         // Every cursor-mode activation starts at the center of the viewport.
@@ -657,9 +687,7 @@
         // carrying over when the cursor becomes visible again.
         cursorX = window.innerWidth / 2;
         cursorY = window.innerHeight / 2;
-        ensureCursor();
-        positionCursor();
-        if (cursorEl) cursorEl.style.display = 'block';
+        showCursorVisual();
         if (window.CouchBrowserVirtualKeyboard) {
             window.CouchBrowserVirtualKeyboard.animateSelected();
         }
@@ -669,12 +697,13 @@
 
     function stopCursor() {
         cursorActive = false;
-        if (cursorEl) cursorEl.style.display = 'none';
+        hideCursorVisual();
         updateSelectionIndicator(currentElement);
     }
 
     function moveCursor(dx, dy) {
-        if (!cursorActive) return;
+        if (!cursorActive || !isGamepadConnected) return;
+        showCursorVisual();
         cursorX = Math.max(0, Math.min(window.innerWidth, cursorX + dx));
         cursorY = Math.max(0, Math.min(window.innerHeight, cursorY + dy));
         positionCursor();
@@ -796,7 +825,9 @@
                     if (first) setCurrent(first);
                 }
                 updateSelectionIndicator();
+                if (cursorActive) showCursorVisual();
             } else if (!isGamepadConnected && wasConnected) {
+                hideCursorVisual();
                 updateSelectionIndicator();
             }
         } else if (event.data.type === 'COUCH_BROWSER_DEFAULT_MODE') {
@@ -888,6 +919,7 @@
         navigate: navigate,
         get current() { return currentElement; },
         get cursorActive() { return cursorActive; },
+        get cursorVisible() { return !!cursorEl && cursorEl.style.display !== 'none'; },
         get cursorPosition() { return { x: cursorX, y: cursorY }; }
     };
 
