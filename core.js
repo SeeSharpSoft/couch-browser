@@ -26,15 +26,15 @@
             '[role="dialog"]', '[aria-modal="true"]', 'dialog[open]',
             '.modal.show', '.modal[open]', '.popup', '.overlay'
         ],
-        closeSelectors: 'button[aria-label*="close" i], [data-uia*="close" i], [aria-label*="Close" i], .close',
+        closeSelectors: [
+            'button[aria-label*="close" i]', '[data-uia*="close" i]',
+            '[aria-label*="Close" i]', '.close'
+        ],
         getContainer: null,            // (el) => Element|null, for indicator placement
         firstElementSelectors: [],     // preferred initial selection
         nesting: 'outermost',          // 'outermost' | 'innermost'
         useCursorPointer: true,        // cursor:pointer heuristic on/off
-        captureKeyboard: false,        // intercept real arrow keys for navigation
-        autoSelect: true,              // auto-select first element on load
-        historyNavigation: true,       // LB/RB -> browser back/forward
-        cursorMode: true               // right trigger -> virtual mouse cursor
+        autoSelect: true              // auto-select first element on load
     };
 
     // Generic focusable base selectors. Site config adds extraSelectors and may
@@ -70,6 +70,8 @@
     let cursorActive = false;
     let cursorX = 0;
     let cursorY = 0;
+    let cursorHideTimer = null;
+    const CURSOR_IDLE_TIMEOUT = 30000;
     // Our own source of truth for the selected element. We do NOT rely on
     // document.activeElement / focus events alone, because many sites manage
     // focus themselves and .focus() does not reliably move activeElement.
@@ -136,13 +138,16 @@
         };
     }
 
-    function isVisible(el) {
+    function isVisible(el, allowOffscreen = false) {
         if (!el || !el.getBoundingClientRect) return false;
         const rect = el.getBoundingClientRect();
         if (rect.width <= 1 || rect.height <= 1) return false;
         
-        // Viewport check: if it's completely outside the viewport, it's not visible for navigation.
-        if (rect.bottom < 0 || rect.right < 0 || rect.top > window.innerHeight || rect.left > window.innerWidth) {
+        // Most callers need viewport-visible elements. Directional navigation
+        // may also consider an offscreen target because setCurrent() scrolls it
+        // into view after selection.
+        const offscreen = rect.bottom < 0 || rect.right < 0 || rect.top > window.innerHeight || rect.left > window.innerWidth;
+        if (offscreen && !allowOffscreen) {
             return false;
         }
 
@@ -159,8 +164,10 @@
         ];
         
         let isObscured = true;
+        let hasViewportPoint = false;
         for (const p of points) {
             if (p.x >= 0 && p.x <= window.innerWidth && p.y >= 0 && p.y <= window.innerHeight) {
+                hasViewportPoint = true;
                 const hit = document.elementFromPoint(p.x, p.y);
                 if (!hit || el.contains(hit) || hit.contains(el)) {
                     isObscured = false;
@@ -185,7 +192,7 @@
             }
         }
 
-        return !isObscured;
+        return !hasViewportPoint || !isObscured;
     }
 
     function getActiveOverlay() {
@@ -264,7 +271,7 @@
         }
     }
 
-    function getNavigableElements(root) {
+    function getNavigableElements(root, allowOffscreen = false) {
         root = root || document;
         const matches = root.querySelectorAll(getSelectorString());
         const seen = new Set();
@@ -273,7 +280,7 @@
         const consider = (el) => {
             if (!el || seen.has(el)) return;
             if (el === root) return;               // never select the scope root itself
-            if (!isVisible(el) || isExcluded(el)) return;
+            if (!isVisible(el, allowOffscreen) || isExcluded(el)) return;
             seen.add(el);
             list.push(el);
         };
@@ -322,7 +329,7 @@
         }
         checkScopeChange();
         const root = getScope();
-        const elements = getNavigableElements(root);
+        const elements = getNavigableElements(root, true);
         if (elements.length === 0) {
             console.log('Couch Browser: No navigable elements found');
             return;
@@ -449,7 +456,8 @@
         // 2. Overlay/popup open -> close it. Prefer its close button; otherwise
         //    dispatch Escape into the overlay so popups that close on Escape do.
         if (overlay) {
-            const close = overlay.querySelector(config.closeSelectors);
+            const closeSelector = (config.closeSelectors || []).join(',');
+            const close = closeSelector ? overlay.querySelector(closeSelector) : null;
             if (close) { close.click(); }
             else { dispatchEscape(overlay); }
             setTimeout(() => checkScopeChange(), 100);
@@ -600,7 +608,6 @@
     // ----- Browser history navigation (LB / RB) ---------------------------
 
     function navigateHistory(delta) {
-        if (!config.historyNavigation) return;
         // Only the top frame should drive browser history.
         if (window.self !== window.top) return;
         try {
@@ -645,26 +652,42 @@
         cursorEl.style.top = cursorY + 'px';
     }
 
-    function startCursor() {
-        if (!config.cursorMode) return;
-        cursorActive = true;
-        // Start from the center of the current selection if available, else the
-        // viewport center.
-        const keyboardCursor = window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.cursorTarget();
-        if (keyboardCursor) {
-            cursorX = keyboardCursor.x;
-            cursorY = keyboardCursor.y;
-        } else if (currentElement && document.contains(currentElement)) {
-            const r = currentElement.getBoundingClientRect();
-            cursorX = r.left + r.width / 2;
-            cursorY = r.top + r.height / 2;
-        } else if (!cursorX && !cursorY) {
-            cursorX = window.innerWidth / 2;
-            cursorY = window.innerHeight / 2;
+    function hideCursorVisual() {
+        if (cursorHideTimer !== null) {
+            clearTimeout(cursorHideTimer);
+            cursorHideTimer = null;
+        }
+        if (cursorEl) cursorEl.style.display = 'none';
+    }
+
+    function scheduleCursorHide() {
+        if (cursorHideTimer !== null) clearTimeout(cursorHideTimer);
+        cursorHideTimer = setTimeout(() => {
+            cursorHideTimer = null;
+            if (cursorActive) hideCursorVisual();
+        }, CURSOR_IDLE_TIMEOUT);
+    }
+
+    function showCursorVisual() {
+        if (!cursorActive) return;
+        if (!isGamepadConnected) {
+            hideCursorVisual();
+            return;
         }
         ensureCursor();
         positionCursor();
         if (cursorEl) cursorEl.style.display = 'block';
+        scheduleCursorHide();
+    }
+
+    function startCursor() {
+        cursorActive = true;
+        // Every cursor-mode activation starts at the center of the viewport.
+        // This also prevents a previous cursor position or selection from
+        // carrying over when the cursor becomes visible again.
+        cursorX = window.innerWidth / 2;
+        cursorY = window.innerHeight / 2;
+        showCursorVisual();
         if (window.CouchBrowserVirtualKeyboard) {
             window.CouchBrowserVirtualKeyboard.animateSelected();
         }
@@ -674,12 +697,13 @@
 
     function stopCursor() {
         cursorActive = false;
-        if (cursorEl) cursorEl.style.display = 'none';
+        hideCursorVisual();
         updateSelectionIndicator(currentElement);
     }
 
     function moveCursor(dx, dy) {
-        if (!cursorActive) return;
+        if (!cursorActive || !isGamepadConnected) return;
+        showCursorVisual();
         cursorX = Math.max(0, Math.min(window.innerWidth, cursorX + dx));
         cursorY = Math.max(0, Math.min(window.innerHeight, cursorY + dy));
         positionCursor();
@@ -691,8 +715,19 @@
     function cursorClick() {
         if (!cursorActive) return;
         if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.cursorClick(cursorX, cursorY)) return;
-        const target = document.elementFromPoint(cursorX, cursorY);
-        if (!target || target === document.body || target === document.documentElement) return;
+        const hit = document.elementFromPoint(cursorX, cursorY);
+        const target = findInteractiveTarget(hit);
+        if (!target) return;
+
+        // A cursor click becomes the new navigation selection as well. Text
+        // inputs use the exact same activation path as A in navigation mode,
+        // which opens the virtual keyboard instead of dispatching a raw click.
+        setCurrent(target);
+        if (window.CouchBrowserVirtualKeyboard && window.CouchBrowserVirtualKeyboard.isTextTarget(target)) {
+            activateCurrent();
+            return;
+        }
+
         const opts = {
             bubbles: true, cancelable: true, composed: true, view: window,
             clientX: cursorX, clientY: cursorY, button: 0
@@ -703,6 +738,19 @@
         target.dispatchEvent(new MouseEvent('mouseup', opts));
         target.dispatchEvent(new MouseEvent('click', opts));
         setTimeout(() => checkScopeChange(), 100);
+    }
+
+    function findInteractiveTarget(el) {
+        if (!el || el === document.body || el === document.documentElement) return null;
+        const selector = getSelectorString();
+        let current = el;
+        while (current && current !== document.body && current !== document.documentElement) {
+            try {
+                if (current.matches(selector) && isVisible(current)) return current;
+            } catch (e) {}
+            current = current.parentElement;
+        }
+        return null;
     }
 
     // ----- Hide the real OS mouse cursor while the gamepad is in use ------
@@ -738,19 +786,6 @@
     }
 
     // ----- Event wiring ---------------------------------------------------
-
-    // Real keyboard navigation, only when the site config opts in (so we never
-    // hijack arrow keys on arbitrary pages). Genuine key presses only.
-    document.addEventListener('keydown', (e) => {
-        if (!config.captureKeyboard) return;
-        if (!e.isTrusted) return;
-        const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
-        if (tag === 'input' || tag === 'textarea' || (e.target && e.target.isContentEditable)) return;
-        if (['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'].includes(e.key)) {
-            navigate(e.key);
-            e.preventDefault();
-        }
-    }, true);
 
     // Keep our selection in sync when focus changes by other means (mouse, Tab).
     document.addEventListener('focusin', (e) => {
@@ -790,9 +825,16 @@
                     if (first) setCurrent(first);
                 }
                 updateSelectionIndicator();
+                if (cursorActive) showCursorVisual();
             } else if (!isGamepadConnected && wasConnected) {
+                hideCursorVisual();
                 updateSelectionIndicator();
             }
+        } else if (event.data.type === 'COUCH_BROWSER_DEFAULT_MODE') {
+            // This also covers the initial setting arriving after core.js loads.
+            // gamepad.js will immediately correct this if RT is currently held.
+            if (event.data.mode === 'cursor') startCursor();
+            else stopCursor();
         } else if (event.data.type === 'COUCH_BROWSER_KEY') {
             const key = event.data.key;
             if (key === 'ShiftOn' || key === 'ShiftOff') {
@@ -839,6 +881,10 @@
         }
         initialized = true;
 
+        // gamepad.js may have received the persisted setting before core.js
+        // finished loading. Apply that setting once during initialization.
+        if (window.CouchBrowserDefaultMode === 'cursor') startCursor();
+
         // Watch for overlays appearing/disappearing to update scope and selection.
         const observer = new MutationObserver(() => checkScopeChange());
         observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'open'] });
@@ -873,6 +919,7 @@
         navigate: navigate,
         get current() { return currentElement; },
         get cursorActive() { return cursorActive; },
+        get cursorVisible() { return !!cursorEl && cursorEl.style.display !== 'none'; },
         get cursorPosition() { return { x: cursorX, y: cursorY }; }
     };
 

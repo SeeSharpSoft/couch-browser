@@ -42,23 +42,25 @@ no synthetic DOM key events. It only posts messages via `window.postMessage` wit
 `source: 'couch-browser-extension'` marker:
 
 - `COUCH_BROWSER_KEY` with `key` ∈ `ArrowUp` / `ArrowDown` / `ArrowLeft` / `ArrowRight`
-  (left stick edge-triggered + D-pad), `Enter` (A), `Escape` (B), `PadX` (X),
+  (left stick held-repeat + D-pad edge-triggered), `Enter` (A), `Escape` (B), `PadX` (X),
   `NavBack` (LB), `NavForward` (RB), `CursorOn` / `CursorOff` (right trigger
   pressed/released) and `MouseClick` (A while the trigger is held).
 - `COUCH_BROWSER_SCROLL` with `{ dx, dy }` (right stick, continuous, deadzone 0.15,
   ~18 px/frame at full deflection).
 - `COUCH_BROWSER_CURSOR` with `{ dx, dy }` (left stick in cursor mode, continuous,
   deadzone 0.15, ~12 px/frame at full deflection).
-- `COUCH_BROWSER_TAB` with `{ dir: 'prev' | 'next' }` (right trigger held + LB/RB). Unlike
+- `COUCH_BROWSER_TAB` with `{ dir: 'prev' | 'next' }` (LT held + LB/RB). Unlike
   the others, this is consumed by `content.js` and relayed to the background service
   worker, not by `core.js`.
-- `COUCH_BROWSER_TAB_RELOAD` (right trigger held + Y). This is consumed by `content.js`
+- `COUCH_BROWSER_TAB_RELOAD` (left trigger + Y, when the virtual keyboard is closed). This is consumed by `content.js`
   and relayed to the background service worker, not by `core.js`.
 
 The right trigger (button 7) is analog: it is treated as held when its `value`
-exceeds 0.5. While held, the left stick emits `COUCH_BROWSER_CURSOR` instead of `Arrow*`,
-A emits `MouseClick` instead of `Enter`, and the shoulder buttons emit `COUCH_BROWSER_TAB`
-(previous/next tab) instead of `NavBack`/`NavForward`; Y reloads the current tab. The two stick mappings are
+exceeds 0.5. The default mode is cursor mode unless changed with RT + Y, and is persisted as either navigation or cursor mode. While RT is held,
+the effective mode is inverted: the left stick emits `COUCH_BROWSER_CURSOR` instead of `Arrow*`,
+and A emits `MouseClick` instead of `Enter`. RT + Y toggles the persisted default mode.
+While LT is held, B closes the current tab, Y reloads it, and LB/RB switch tabs when
+the virtual keyboard is closed. The two stick mappings are
 mutually exclusive. On a mode switch the left-stick edge state is reset so no stray
 navigation step is emitted.
 
@@ -185,8 +187,8 @@ Switching browser tabs requires the `chrome.tabs` API, which is unavailable to
 content scripts and the page's Main World. The flow is therefore relayed across
 contexts:
 
-1. While the right trigger is held, `gamepad.js` posts `COUCH_BROWSER_TAB { dir }` on
-   shoulder presses (instead of `NavBack`/`NavForward`).
+1. While LT is held, `gamepad.js` posts `COUCH_BROWSER_TAB { dir }` on shoulder
+   presses (instead of `NavBack`/`NavForward`).
 2. `content.js` (isolated world, **top frame only** to avoid iframe duplicates)
    receives the window message and forwards it with `chrome.runtime.sendMessage`.
 3. `background.js` (service worker) queries the current window's tabs, sorts them by
@@ -214,12 +216,12 @@ mode click) are untrusted and do not restore it.
 
 ### Virtual mouse cursor (right trigger)
 
-When `config.cursorMode` is enabled, holding the right trigger sends `CursorOn`:
+When cursor mode is active, `gamepad.js` sends `CursorOn`:
 
 - A `#couch-browser-cursor` element (a `position: fixed`, **`pointer-events: none`**,
   top-frame-only pointer) is shown. `pointer-events: none` is essential so
   `document.elementFromPoint` resolves to the page, not the cursor.
-- The cursor starts at the center of the current selection (or the viewport center)
+- The cursor starts at the center of the viewport whenever cursor mode is activated
   and is moved by `COUCH_BROWSER_CURSOR {dx, dy}` messages, clamped to the viewport.
 - The selection indicator is hidden while in cursor mode to keep the UI unambiguous.
 
@@ -335,8 +337,8 @@ Tests:
 2. **Load unpacked** and select the project folder.
 3. Connect a gamepad and open any website.
 4. Use the sticks/D-pad to navigate; A/B/X to activate/back/drill; shoulders for
-   browser history; hold the right trigger for cursor mode (and use the shoulders to
-   switch tabs while it is held). Open the console to see Couch Browser logs.
+   browser history; hold LT for browser actions such as tab switching. Hold RT for
+   cursor/navigation mode switching. Open the console to see Couch Browser logs.
 
 ## Design Decisions
 

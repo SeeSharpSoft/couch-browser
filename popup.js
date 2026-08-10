@@ -1,6 +1,19 @@
 const toggle = document.getElementById('enable-toggle');
 const domainText = document.getElementById('domain-name');
+const cursorSpeed = document.getElementById('cursor-speed');
+const scrollSpeed = document.getElementById('scroll-speed');
+const cursorSpeedValue = document.getElementById('cursor-speed-value');
+const scrollSpeedValue = document.getElementById('scroll-speed-value');
+const extensionVersion = document.getElementById('extension-version');
 let currentDomain = '';
+
+const DEFAULT_CURSOR_SPEED = 25;
+const DEFAULT_SCROLL_SPEED = 1500;
+
+function updateSpeedLabels() {
+    cursorSpeedValue.textContent = `${cursorSpeed.value} px/frame`;
+    scrollSpeedValue.textContent = `${scrollSpeed.value} px/s`;
+}
 
 function updateStatus() {
     const gamepads = navigator.getGamepads();
@@ -25,6 +38,7 @@ function updateStatus() {
 }
 
 async function init() {
+    extensionVersion.textContent = chrome.runtime.getManifest().version;
     let currentTabId = null;
 
     // Get current tab domain
@@ -65,6 +79,34 @@ async function init() {
             chrome.tabs.reload();
         }
     });
+
+    const settings = await chrome.storage.sync.get(['cursorSpeed', 'scrollSpeed']);
+    cursorSpeed.value = Number.isFinite(settings.cursorSpeed) ? settings.cursorSpeed : DEFAULT_CURSOR_SPEED;
+    scrollSpeed.value = Number.isFinite(settings.scrollSpeed) ? settings.scrollSpeed : DEFAULT_SCROLL_SPEED;
+    updateSpeedLabels();
+    cursorSpeed.addEventListener('input', () => {
+        updateSpeedLabels();
+        const value = Number(cursorSpeed.value);
+        chrome.storage.sync.set({ cursorSpeed: value });
+        sendSettingsToActiveTab({ cursorSpeed: value });
+    });
+    scrollSpeed.addEventListener('input', () => {
+        updateSpeedLabels();
+        const value = Number(scrollSpeed.value);
+        chrome.storage.sync.set({ scrollSpeed: value });
+        sendSettingsToActiveTab({ scrollSpeed: value });
+    });
+
+    function sendSettingsToActiveTab(settings) {
+        if (!currentTabId) return;
+        chrome.tabs.sendMessage(currentTabId, {
+            type: 'COUCH_BROWSER_SETTINGS',
+            ...settings
+        }, () => {
+            // Ignore tabs without a content script (chrome:// pages, etc.).
+            void chrome.runtime.lastError;
+        });
+    }
 
     // Update status every 500ms
     setInterval(updateStatus, 500);

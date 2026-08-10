@@ -24,10 +24,9 @@
         name: 'netflix.com',
         indicatorColor: '#E50914',
         // Netflix manages its own focus; preserve the original innermost-leaf
-        // navigation behaviour and intercept real arrow keys.
+        // navigation behaviour.
         nesting: 'innermost',
         useCursorPointer: false,
-        captureKeyboard: true,
         extraSelectors: [
             '.navigation-tab a',
             'a.menu-trigger[data-uia="main-header-menu-trigger"]',
@@ -52,7 +51,12 @@
             '[role="dialog"]',
             '[aria-modal="true"]'
         ],
-        closeSelectors: '[data-uia*="close" i], .previewModal-close, button[aria-label*="close" i], [aria-label*="Close" i]',
+        closeSelectors: [
+            '[data-uia*="close" i]',
+            '.previewModal-close',
+            'button[aria-label*="close" i]',
+            '[aria-label*="Close" i]'
+        ],
         firstElementSelectors: [
             '.navigation-tab a',
             '[data-uia="play-button"]',

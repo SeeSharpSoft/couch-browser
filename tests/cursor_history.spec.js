@@ -30,12 +30,32 @@ test('Right trigger cursor mode moves a virtual cursor and clicks under it', asy
   });
 
   // Enter cursor mode (right trigger held).
+  await page.evaluate(() => {
+    window.navigator.getGamepads = () => [];
+    window.postMessage({ source: 'couch-browser-extension', type: 'COUCH_BROWSER_CONNECTION', connected: false }, '*');
+  });
+  await postKey(page, 'CursorOn');
+  await expect(page.locator('#couch-browser-cursor')).toBeHidden();
+
+  await page.evaluate(() => {
+    window.navigator.getGamepads = () => [{}];
+  });
+  await page.waitForTimeout(100);
+  await page.evaluate(() => window.postMessage({
+    source: 'couch-browser-extension',
+    type: 'COUCH_BROWSER_CONNECTION',
+    connected: true
+  }, '*'));
   await postKey(page, 'CursorOn');
   await page.waitForTimeout(100);
 
   expect(await page.evaluate(() => window.CouchBrowserSiteLogic.cursorActive)).toBe(true);
   const cursor = page.locator('#couch-browser-cursor');
   await expect(cursor).toBeVisible();
+  expect(await page.evaluate(() => {
+    const position = window.CouchBrowserSiteLogic.cursorPosition;
+    return position.x === window.innerWidth / 2 && position.y === window.innerHeight / 2;
+  })).toBe(true);
 
   // Move the virtual cursor to the center of the button.
   await page.evaluate(() => {
@@ -52,6 +72,25 @@ test('Right trigger cursor mode moves a virtual cursor and clicks under it', asy
   await page.waitForTimeout(100);
 
   expect(await page.evaluate(() => window.__clicks)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.CouchBrowserSiteLogic.current.id)).toBe('test-button');
+
+  // Cursor clicks also move the navigation selection. Clicking a text input
+  // follows the same activation path as A in navigation mode and opens the
+  // virtual keyboard.
+  await page.evaluate(() => {
+    const input = document.getElementById('test-input');
+    const r = input.getBoundingClientRect();
+    const pos = window.CouchBrowserSiteLogic.cursorPosition;
+    window.postMessage({
+      source: 'couch-browser-extension', type: 'COUCH_BROWSER_CURSOR',
+      dx: r.left + r.width / 2 - pos.x,
+      dy: r.top + r.height / 2 - pos.y
+    }, '*');
+  });
+  await postKey(page, 'MouseClick');
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(() => window.CouchBrowserSiteLogic.current.id)).toBe('test-input');
+  await expect(page.locator('#couch-browser-virtual-keyboard')).toBeVisible();
 
   // Leaving cursor mode hides the cursor.
   await postKey(page, 'CursorOff');

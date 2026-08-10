@@ -2,8 +2,8 @@
 //
 // Tab switching cannot be done from a content script or the page's Main World —
 // it requires the chrome.tabs API, which is only available in extension
-// contexts. content.js relays COUCH_BROWSER_TAB intents (triggered by the right
-// trigger + shoulder buttons) here, and we activate the adjacent tab.
+// contexts. content.js relays COUCH_BROWSER_TAB intents (triggered by LT +
+// shoulder buttons) here, and we activate the adjacent tab.
 
 // Cooldown so a single button press never triggers multiple actions (tab switches
 // or closes). A press can produce several messages (multiple frames relaying,

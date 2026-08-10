@@ -3,7 +3,7 @@ const path = require('path');
 
 const extensionPath = path.join(__dirname, '..');
 
-test('Y reloads the current tab only while RT is held', async () => {
+test('LT + Y reloads the current tab, while RT + Y toggles the default mode', async () => {
   const userDataDir = path.join(__dirname, '..', 'user-data-reload');
   const context = await chromium.launchPersistentContext(userDataDir, {
     headless: false,
@@ -33,15 +33,24 @@ test('Y reloads the current tab only while RT is held', async () => {
   await page.goto('file://' + path.join(__dirname, 'test.html'));
   await page.waitForTimeout(1000);
 
-  // Y without RT is ignored.
+  // Y without a trigger is ignored.
   await page.evaluate(() => window.__setGamepadButton(3, true));
   await page.waitForTimeout(150);
   await page.evaluate(() => window.__setGamepadButton(3, false));
   await page.waitForTimeout(250);
   expect(await page.evaluate(() => sessionStorage.getItem('reload-count'))).toBe('1');
 
-  // Hold RT, then press Y; the background worker reloads this tab.
+  // Hold RT, then press Y; this changes the default mode instead of reloading.
   await page.evaluate(() => window.__setGamepadButton(7, true));
+  await page.waitForTimeout(150);
+  await page.evaluate(() => window.__setGamepadButton(3, true));
+  await page.waitForTimeout(250);
+  expect(await page.evaluate(() => sessionStorage.getItem('reload-count'))).toBe('1');
+
+  // LT + Y reloads when the virtual keyboard is not visible.
+  await page.evaluate(() => window.__setGamepadButton(3, false));
+  await page.evaluate(() => window.__setGamepadButton(7, false));
+  await page.evaluate(() => window.__setGamepadButton(6, true));
   await page.waitForTimeout(150);
   await page.evaluate(() => window.__setGamepadButton(3, true));
   await page.waitForFunction(() => sessionStorage.getItem('reload-count') === '2');
